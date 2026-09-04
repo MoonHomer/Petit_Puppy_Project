@@ -1,0 +1,14 @@
+.cache/
+.claude/
+.config/
+.npm-global/
+.npm/
+.ssh/
+.wget-hsts
+scratch/
+xlsxwork/
+*.xlsx
+uploads/
+node_modules/
+*.pyc
+__pycache__/
