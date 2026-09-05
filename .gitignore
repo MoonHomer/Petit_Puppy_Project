@@ -12,3 +12,9 @@ uploads/
 node_modules/
 *.pyc
 __pycache__/
+.gitconfig
+_extract.js
+.build-check.html
+projdoc/
+petit-mung-plan.html
+petit-mung-status-full.md
