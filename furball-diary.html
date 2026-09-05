@@ -2627,47 +2627,136 @@
       }, function(){ /* 위치 권한 거부 — 기본값 유지 */ }, { timeout:6000 });
     }catch(e){ /* 조용히 무시하고 기본값 유지 */ }
   }
-  function drawPixelSky(ctx, groundRow){
-    var day = isDaytimeNow();
-    var cond = WEATHER_STATE.condition;
-    var top, bottom;
-    if(day){
-      if(cond === "overcast" || cond === "fog"){ top = "#9AA6AC"; bottom = "#C7CFC7"; }
-      else if(cond === "rain" || cond === "storm"){ top = "#6E7C89"; bottom = "#A7AF9E"; }
-      else if(cond === "snow"){ top = "#C7D6DE"; bottom = "#E8EEE4"; }
-      else if(cond === "cloudy"){ top = "#A9C3D6"; bottom = "#DCE6D6"; }
-      else { top = "#8FCBEF"; bottom = "#D9EFC9"; }
-    } else {
-      if(cond === "rain" || cond === "storm"){ top = "#12182E"; bottom = "#33384C"; }
-      else if(cond === "snow"){ top = "#26314F"; bottom = "#56607A"; }
-      else if(cond === "cloudy" || cond === "overcast" || cond === "fog"){ top = "#232B48"; bottom = "#42465F"; }
-      else { top = "#1E2A52"; bottom = "#4B4E72"; }
+  // 67번(신규): 배경 하늘색은 실제 접속 시각이 아니라 "게임 속 시간"(state.time.hour, 06~22시,
+  // 64번에서 도입된 게임시계)을 기준으로 4단계로 나눠 반영 — 사용자 지정 구간 그대로: 아침 06~10시 /
+  // 낮 11~16시 / 노을·저녁 17~19시 / 밤 20~22시(+방어적 기본값). 산책 이벤트 조건에 쓰이는
+  // isDaytimeNow()/timeBand()(58번, 실제 기기 시각 기준 — "이 경계는 절대 건드리지 않는다"고 이미
+  // 확정된 별개 시스템)는 전혀 건드리지 않고, 배경 전용으로 새 함수를 분리함.
+  function gameSkyBand(){
+    var h = (typeof state !== "undefined" && state.time && typeof state.time.hour === "number") ? state.time.hour : 6;
+    if(h >= 6 && h <= 10) return "morning";
+    if(h >= 11 && h <= 16) return "day";
+    if(h >= 17 && h <= 19) return "evening";
+    return "night";
+  }
+  // 67번: 시간대(4종) × 실제 관측 날씨(7종, weatherCodeToCondition 결과)의 하늘 그라디언트 표를
+  // 손으로 지정 — 색상 보간 함수 대신 명시적 표로 관리해 팔레트를 눈으로 바로 확인·조정할 수 있게 함.
+  // 각 값은 [오프셋, 색상] 배열이라 createLinearGradient에 그대로 addColorStop으로 먹임(3단 그라디언트도 가능).
+  var SKY_PALETTES = {
+    morning: {
+      clear:    [[0,"#8FB8DE"],[0.55,"#BFDCE6"],[1,"#F7DCB0"]],
+      cloudy:   [[0,"#9FB9CE"],[0.55,"#C7D6D6"],[1,"#EAD9BE"]],
+      overcast: [[0,"#A7ADAE"],[1,"#D8CDBC"]],
+      fog:      [[0,"#B7BDB8"],[1,"#E2D9C8"]],
+      rain:     [[0,"#5E6B78"],[1,"#9C9587"]],
+      storm:    [[0,"#4C5560"],[1,"#847E77"]],
+      snow:     [[0,"#B9CBD8"],[1,"#EBE3D6"]]
+    },
+    day: {
+      clear:    [[0,"#6FB6E8"],[1,"#DCEFD2"]],
+      cloudy:   [[0,"#A9C3D6"],[1,"#DCE6D6"]],
+      overcast: [[0,"#9AA6AC"],[1,"#C7CFC7"]],
+      fog:      [[0,"#9AA6AC"],[1,"#C7CFC7"]],
+      rain:     [[0,"#6E7C89"],[1,"#A7AF9E"]],
+      storm:    [[0,"#5B6672"],[1,"#8D9483"]],
+      snow:     [[0,"#C7D6DE"],[1,"#E8EEE4"]]
+    },
+    evening: {
+      clear:    [[0,"#4C4A7C"],[0.5,"#C96A4E"],[1,"#F6B65E"]],
+      cloudy:   [[0,"#565575"],[0.5,"#B87C63"],[1,"#E7C588"]],
+      overcast: [[0,"#5B5A66"],[1,"#9C8C82"]],
+      fog:      [[0,"#605F6C"],[1,"#A69A8E"]],
+      rain:     [[0,"#33313F"],[1,"#5E5850"]],
+      storm:    [[0,"#28262E"],[1,"#4A443E"]],
+      snow:     [[0,"#4C4D6A"],[1,"#9598A0"]]
+    },
+    night: {
+      clear:    [[0,"#151A34"],[1,"#3C3F5C"]],
+      cloudy:   [[0,"#20253E"],[1,"#41425A"]],
+      overcast: [[0,"#232B48"],[1,"#42465F"]],
+      fog:      [[0,"#242A3E"],[1,"#454A5C"]],
+      rain:     [[0,"#10142A"],[1,"#2E3242"]],
+      storm:    [[0,"#0C0F22"],[1,"#282A38"]],
+      snow:     [[0,"#232E4A"],[1,"#4E566E"]]
     }
+  };
+  // 67번: 은은한 장식 구름 한 송이(테두리 없는 단순 픽셀 뭉치 3단) — 실제 관측 날씨와 무관하게 항상
+  // 살짝 떠 있어 "구름"을 표현하고, 날씨가 실제로 흐리다면 아래 기존 오버레이가 더 진하게 덧그려짐.
+  function drawCloudPuff(ctx, x, y){
+    ctx.fillRect(x, y, 14, 4);
+    ctx.fillRect(x + 3, y - 2, 9, 3);
+    ctx.fillRect(x - 2, y + 3, 18, 2);
+  }
+  function drawPixelSky(ctx, groundRow){
+    var band = gameSkyBand();
+    var cond = WEATHER_STATE.condition;
+    var palette = SKY_PALETTES[band] || SKY_PALETTES.day;
+    var stops = palette[cond] || palette.clear;
+
     var grad = ctx.createLinearGradient(0, 0, 0, groundRow);
-    grad.addColorStop(0, top);
-    grad.addColorStop(1, bottom);
+    stops.forEach(function(s){ grad.addColorStop(s[0], s[1]); });
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, PX_W, groundRow);
 
-    if(day && (cond === "clear" || cond === "cloudy")){
-      ctx.fillStyle = "#FFE7A0";
-      ctx.fillRect(122, 8, 8, 8);
-      ctx.fillStyle = "#FFF3C8";
-      ctx.fillRect(120, 10, 12, 4);
+    // 해/달/별 — 시간대별로 위치·색·크기를 다르게(아침=낮게 뜬 은은한 해, 낮=높이 뜬 밝은 해,
+    // 저녁=낮게 지는 크고 붉은 해, 밤=달+별). 맑음/흐림일 때만(비·눈·안개엔 해가 안 보이는 게 자연스러움)
+    if(cond === "clear" || cond === "cloudy"){
+      if(band === "morning"){
+        ctx.fillStyle = "#FFE2A6"; ctx.fillRect(18, 30, 9, 9);
+        ctx.fillStyle = "#FFF2CC"; ctx.fillRect(16, 32, 13, 5);
+      } else if(band === "day"){
+        ctx.fillStyle = "#FFE7A0"; ctx.fillRect(122, 8, 8, 8);
+        ctx.fillStyle = "#FFF3C8"; ctx.fillRect(120, 10, 12, 4);
+      } else if(band === "evening"){
+        ctx.fillStyle = "#FF9F5E"; ctx.fillRect(112, 34, 11, 11);
+        ctx.fillStyle = "#FFC98A"; ctx.fillRect(109, 37, 17, 5);
+      }
     }
-    if(!day){
+    if(band === "night"){
       ctx.fillStyle = "#F4EFD8";
       ctx.fillRect(20, 8, 7, 7);
-      var stars = [[40,14],[55,7],[70,18],[95,9],[110,15],[10,20]];
+      var stars = [[40,14],[55,7],[70,18],[95,9],[110,15],[10,20],[130,11],[60,22]];
       stars.forEach(function(s){ ctx.fillRect(s[0], s[1], 1, 1); });
     }
+
+    // 67번(개발팀 판단 추가): 시간대별 보너스 풍경 요소 — 아침엔 나는 새 두 마리(V자), 저녁엔 지평선
+    // 근처를 나는 새 실루엣 한 마리로 노을 분위기를 보강. 낮/밤은 기존 해·달·별 요소로 충분하다고 판단.
+    if(band === "morning" && (cond === "clear" || cond === "cloudy")){
+      ctx.fillStyle = "rgba(60,54,46,0.55)";
+      [[45,20],[54,24]].forEach(function(b){
+        ctx.fillRect(b[0], b[1], 3, 1);
+        ctx.fillRect(b[0]-2, b[1]-1, 2, 1);
+        ctx.fillRect(b[0]+3, b[1]-1, 2, 1);
+      });
+    }
+    if(band === "evening" && (cond === "clear" || cond === "cloudy")){
+      ctx.fillStyle = "rgba(60,40,30,0.5)";
+      ctx.fillRect(90, 26, 3, 1);
+      ctx.fillRect(88, 25, 2, 1);
+      ctx.fillRect(93, 25, 2, 1);
+    }
+
+    // 67번: 장식용 잔잔한 구름 2송이 — 날씨와 무관하게 항상 은은히 떠 있고, 시간대별 색조를 입혀
+    // "구름" 표현을 상시화. Date.now() 기반 위상으로 아주 느리게 좌우로 흔들려("바람" 느낌) —
+    // 전용 애니메이션 타이머를 새로 만들지 않아도 숨쉬기/유휴포즈 타이머가 주기적으로 drawPixelScene()을
+    // 다시 불러주므로 자연히 흘러가는 것처럼 보임.
+    var drift = Math.sin(Date.now() / 4000) * 3;
+    var cloudTint = band === "night" ? "rgba(255,255,255,0.16)"
+      : band === "evening" ? "rgba(255,236,214,0.55)"
+      : band === "morning" ? "rgba(255,255,255,0.5)"
+      : "rgba(255,255,255,0.7)";
+    ctx.fillStyle = cloudTint;
+    drawCloudPuff(ctx, 14 + drift, 14);
+    drawCloudPuff(ctx, 82 - drift, 9);
+
+    // 기존 날씨별 강조 오버레이(실제 흐림/비/눈이 관측됐을 때 더 진하게)는 그대로 유지
     if(cond === "cloudy" || cond === "overcast" || cond === "fog"){
-      ctx.fillStyle = day ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.18)";
+      ctx.fillStyle = band === "night" ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.55)";
       ctx.fillRect(10, 12, 22, 5);
       ctx.fillRect(70, 6, 26, 5);
     }
     if(cond === "rain" || cond === "storm"){
-      ctx.fillStyle = day ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)";
+      ctx.fillStyle = band === "night" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.5)";
       ctx.fillRect(10, 10, 22, 4);
       ctx.fillRect(70, 5, 26, 4);
       ctx.globalAlpha = 0.5;
@@ -2685,6 +2774,20 @@
         ctx.fillRect(sx, groundRow-20 + (j%4)*5, 1, 1);
       }
     }
+
+    // 67번: 바람 표현 — 상단에 옅은 대각 스트리크 몇 개, drift 위상에 맞춰 서서히 흘러 미풍 느낌을 냄
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = band === "night" ? "#AEB6D6" : "#FFFFFF";
+    ctx.lineWidth = 1;
+    for(var wi = 0; wi < 3; wi++){
+      var wx = ((wi * 45 + drift * 6) % (PX_W + 20)) - 10;
+      var wy = 4 + wi * 4;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + 9, wy);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
   // 53번: 지붕 폭 계산(inset)이 roofY(위쪽)에서 가장 넓고 몸체와 만나는 아래쪽에서 0에 가까워지도록
   // 거꾸로 되어 있던 버그를 고쳐 정삼각 박공지붕(위가 뾰족, 처마가 몸체 폭)으로 재작업. 사용자가 준
