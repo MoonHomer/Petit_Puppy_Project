@@ -320,6 +320,15 @@
     if(!def) return false;
     return (state.abilities[def.category]||[]).some(function(a){ return a.id === "catalog:"+id; });
   }
+  // 66번(2단계 리팩토링): 온보딩에서 "N% 확률로 딱 하나만, 후보 중 균등하게" 부여하는 결합 굴림
+  // 패턴이 지역 전담 능력 14종(60번)과 미라클멍잉/올빼미독(65번) 두 곳에 거의 동일하게 중복돼 있어
+  // 하나의 헬퍼로 통합. 후보가 2개일 때 Math.floor(Math.random()*2)로 고르는 것은 기존 코드의
+  // "Math.random()<0.5 ? A : B"와 분포가 완전히 동일해(각각 정확히 50%) 행동 변화 없음.
+  function rollCombinedExclusiveAbility(chance, candidateIds){
+    if(Math.random() < chance){
+      catalogGrant(candidateIds[Math.floor(Math.random() * candidateIds.length)]);
+    }
+  }
 
   var el = {};
   ["dayBadge","gameClockBadge","dogNameLabel","coinCount","walkCountLabel","dogWrap","dogEl","msgFloat",

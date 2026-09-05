@@ -61,19 +61,16 @@
     // "10% 확률로 딱 하나만, 14종 중 균등(1/14, 긍/부정 구분 없음)"이라는 사용자 지정 확률 구조를
     // 정확히 재현할 수 없어(14개를 각각 독립 굴리면 확률이 어긋나고, 같은 지역 긍/부정이 동시에 뽑힐
     // 위험도 생김) 별도의 단일 결합 굴림으로 처리. 사용자 지시 3번①을 그대로 반영.
-    if(Math.random() < 0.10){
-      var regionAbilityIds = [];
-      Object.keys(REGION_ABILITY_MAP).forEach(function(rid){
-        regionAbilityIds.push(REGION_ABILITY_MAP[rid].pos, REGION_ABILITY_MAP[rid].neg);
-      });
-      catalogGrant(regionAbilityIds[Math.floor(Math.random() * regionAbilityIds.length)]);
-    }
+    // 66번(2단계): 결합 굴림 자체는 rollCombinedExclusiveAbility()로 통합(006-abilities-and-domrefs.js).
+    var regionAbilityIds = [];
+    Object.keys(REGION_ABILITY_MAP).forEach(function(rid){
+      regionAbilityIds.push(REGION_ABILITY_MAP[rid].pos, REGION_ABILITY_MAP[rid].neg);
+    });
+    rollCombinedExclusiveAbility(0.10, regionAbilityIds);
     // 65번(16장): '미라클멍잉'/'올빼미독' — 엑셀 원안은 독립 5%씩이지만 동시 보유가 명시적으로
     // 금지돼 있어, 지역 전담 능력과 같은 방식으로 10% 결합 굴림 하나를 반반(50/50)으로 나눠 배정
     // — 각자 체감 확률은 여전히 5%이면서 상호 배타가 항상 보장됨.
-    if(Math.random() < 0.10){
-      catalogGrant(Math.random() < 0.5 ? "miracleMorning" : "nightOwlDog");
-    }
+    rollCombinedExclusiveAbility(0.10, ["miracleMorning", "nightOwlDog"]);
     saveState();
     closeOnboarding();
     render();
