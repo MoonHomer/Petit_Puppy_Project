@@ -205,7 +205,11 @@
   function closeTalkIdlePrompt(){
     if(el.talkIdlePopup) el.talkIdlePopup.hidden = true;
   }
-  // 45번: 상점의 소통버튼 신규 7종 — 테스트 버전 확정 가격 0원, 이미 보유했으면 "보유중"으로 비활성화.
+  // 69번: 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 유상 구매로 전환 — 상점이 [일반]/[소통버튼]
+  // 2개 탭으로 나뉘면서 함께 반영됨. 가격은 이름 붙은 상수로 분리해 조정 가능하게 함.
+  var TALK_BUTTON_SHOP_PRICE = 10;
+  // 45번: 상점의 소통버튼 신규 7종, 이미 보유했으면 "보유중"으로 비활성화 — 69번부터 미보유 항목은
+  // 가격(뼈다귀 개수)을 보여주고, 뼈다귀가 모자라면 버튼 자체를 비활성화.
   function renderTalkShop(){
     var host = el.talkShopGrid;
     if(!host) return;
@@ -225,7 +229,13 @@
         btn.textContent = "보유중";
         btn.disabled = true;
       } else {
-        btn.textContent = "무료로 배우기";
+        btn.appendChild(document.createTextNode(TALK_BUTTON_SHOP_PRICE + " "));
+        var coinDot = document.createElement("span");
+        coinDot.className = "coin-dot";
+        coinDot.style.width = "10px";
+        coinDot.style.height = "10px";
+        btn.appendChild(coinDot);
+        btn.disabled = state.coins < TALK_BUTTON_SHOP_PRICE;
         btn.addEventListener("click", function(){ buyTalkButton(def.id); });
       }
       item.appendChild(name);
@@ -239,12 +249,17 @@
       showMessage("이미 가지고 있는 소통버튼이에요.");
       return;
     }
+    if(state.coins < TALK_BUTTON_SHOP_PRICE){
+      showMessage(pick(FLAVOR.poor));
+      return;
+    }
+    state.coins -= TALK_BUTTON_SHOP_PRICE;
     state.talkButton.owned.push(id);
     var def = findTalkButtonDef(id);
     showMessage("새 소통버튼 \"" + (def ? def.label : "") + "\"을(를) 배웠어요!");
     renderTalkShop();
     renderTalkWidget();
-    saveState();
+    saveRenderPulse();
   }
 
   // 48번(기획문서 12장): 30일 임시보호 종료 엔딩씬. "달성/미달성" 판정 로직은 문서에도 "추후 구현

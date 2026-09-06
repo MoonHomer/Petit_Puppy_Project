@@ -351,7 +351,7 @@
    "descPopup","descPopupTitle","descPopupText","descPopupClose",
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
-   "shopVeil","shopBackBtn","talkShopGrid",
+   "shopVeil","shopBackBtn","talkShopGrid","shopTabs","shopPageGeneral","shopPageTalk",
    "onboardVeil","nameInput","crateGrid","stepShelter","stepReveal",
    "stepSizeHint","sizeHintWord","sizeHintNext",
    "stepEyeColor","eyeColorGrid","stepCoatColor","coatColorGrid",

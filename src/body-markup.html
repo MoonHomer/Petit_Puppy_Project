@@ -196,7 +196,7 @@
       <button class="act-btn act-bath" id="btnBath"><div class="glyph"></div><div><span class="label">목욕시키기</span><small>청결도 +40</small></div></button>
       <button class="act-btn act-treat" id="btnTreat"><div class="glyph"></div><div><span class="label">간식주기</span><small>배부름 +10</small></div></button>
       <button class="act-btn act-rest" id="btnRest"><div class="glyph"></div><div><span class="label">쉬게하기</span><small>에너지 +20</small></div></button>
-      <button class="act-btn act-outing" id="btnOuting"><div class="glyph"></div><div><span class="label">잠시 나갔다 올게</span><small>뼈다귀 변동은 랜덤</small></div></button>
+      <button class="act-btn act-outing" id="btnOuting"><div class="glyph"></div><div><span class="label">잠시 나갔다 올게</span><small>현생의 시간</small></div></button>
     </div>
     <div class="back-row"><button type="button" class="back-btn" id="careBackBtn">돌아가기</button></div>
   </div>
@@ -222,8 +222,14 @@
 <div class="veil" id="shopVeil">
   <div class="onboard subscreen">
     <h2>상점</h2>
-    <div class="shop">
-      <div class="shop-head"><span class="shop-hint">코인으로 구매</span></div>
+    <!-- 69번: 상점을 [일반]/[소통버튼] 2개 탭으로 분리 — 애착바구니(attachTabs, 35·36번)와 같은
+         "탭 버튼 + data 속성 + active 클래스" 패턴을 재사용. -->
+    <div class="shop-tabs" id="shopTabs">
+      <button type="button" class="shop-tab active" data-tab="general">일반</button>
+      <button type="button" class="shop-tab" data-tab="talk">소통버튼</button>
+    </div>
+    <div class="shop" id="shopPageGeneral">
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
       <div class="shop-grid">
         <div class="shop-item">
           <span class="name">고급 간식</span>
@@ -236,9 +242,11 @@
           <button id="buyToy">15 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
         </div>
       </div>
-      <!-- 45번: 소통버튼 신규 7종 — 테스트 버전 확정 가격은 0원(무료), 구매하면 기존 보유 세트에
-           추가됨(교체 아님). 이해력/성장단계 게이팅은 정식 버전 설계로 보류, 지금은 조건 없이 구매 가능. -->
-      <div class="shop-head" style="margin-top:10px;"><span class="shop-hint">소통버튼 배우기 (테스트 기간 무료)</span></div>
+    </div>
+    <!-- 69번: 소통버튼 신규 7종 — 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 10개로 유상화.
+         이해력/성장단계 게이팅은 여전히 정식 버전 설계로 보류, 지금은 뼈다귀 보유 조건만 확인. -->
+    <div class="shop" id="shopPageTalk" hidden>
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
       <div class="shop-grid" id="talkShopGrid"></div>
     </div>
     <div class="back-row"><button type="button" class="back-btn" id="shopBackBtn">돌아가기</button></div>

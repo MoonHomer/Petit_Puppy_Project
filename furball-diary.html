@@ -697,6 +697,16 @@
   .act-btn.act-span{ grid-column:1 / -1; }
 
   /* ---- shop ---- */
+  /* 69번: 상점 [일반]/[소통버튼] 탭 — 애착바구니 .attach-tab처럼 색으로 구분하는 대신, 상점 버튼들과
+     톤을 맞춘 단색 세그먼트 스위치(선택된 쪽만 카드색+코랄 테두리)로 구현. */
+  .shop-tabs{ display:flex; gap:4px; margin-bottom:8px; }
+  .shop-tab{
+    flex:1; border:1px solid var(--line-strong); background:var(--card-2); color:var(--ink-soft);
+    font-family:inherit; font-weight:700; font-size:0.72rem; border-radius:999px; padding:6px 4px;
+    cursor:pointer; transition:background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .shop-tab:hover{ border-color:var(--coral); }
+  .shop-tab.active{ background:var(--card); color:var(--ink); border-color:var(--coral); box-shadow:inset 0 1px 0 rgba(255,255,255,.4); }
   .shop{
     border-top:1px dashed var(--line-strong);
     padding-top:8px;
@@ -1887,7 +1897,7 @@
       <button class="act-btn act-bath" id="btnBath"><div class="glyph"></div><div><span class="label">목욕시키기</span><small>청결도 +40</small></div></button>
       <button class="act-btn act-treat" id="btnTreat"><div class="glyph"></div><div><span class="label">간식주기</span><small>배부름 +10</small></div></button>
       <button class="act-btn act-rest" id="btnRest"><div class="glyph"></div><div><span class="label">쉬게하기</span><small>에너지 +20</small></div></button>
-      <button class="act-btn act-outing" id="btnOuting"><div class="glyph"></div><div><span class="label">잠시 나갔다 올게</span><small>뼈다귀 변동은 랜덤</small></div></button>
+      <button class="act-btn act-outing" id="btnOuting"><div class="glyph"></div><div><span class="label">잠시 나갔다 올게</span><small>현생의 시간</small></div></button>
     </div>
     <div class="back-row"><button type="button" class="back-btn" id="careBackBtn">돌아가기</button></div>
   </div>
@@ -1913,8 +1923,14 @@
 <div class="veil" id="shopVeil">
   <div class="onboard subscreen">
     <h2>상점</h2>
-    <div class="shop">
-      <div class="shop-head"><span class="shop-hint">코인으로 구매</span></div>
+    <!-- 69번: 상점을 [일반]/[소통버튼] 2개 탭으로 분리 — 애착바구니(attachTabs, 35·36번)와 같은
+         "탭 버튼 + data 속성 + active 클래스" 패턴을 재사용. -->
+    <div class="shop-tabs" id="shopTabs">
+      <button type="button" class="shop-tab active" data-tab="general">일반</button>
+      <button type="button" class="shop-tab" data-tab="talk">소통버튼</button>
+    </div>
+    <div class="shop" id="shopPageGeneral">
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
       <div class="shop-grid">
         <div class="shop-item">
           <span class="name">고급 간식</span>
@@ -1927,9 +1943,11 @@
           <button id="buyToy">15 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
         </div>
       </div>
-      <!-- 45번: 소통버튼 신규 7종 — 테스트 버전 확정 가격은 0원(무료), 구매하면 기존 보유 세트에
-           추가됨(교체 아님). 이해력/성장단계 게이팅은 정식 버전 설계로 보류, 지금은 조건 없이 구매 가능. -->
-      <div class="shop-head" style="margin-top:10px;"><span class="shop-hint">소통버튼 배우기 (테스트 기간 무료)</span></div>
+    </div>
+    <!-- 69번: 소통버튼 신규 7종 — 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 10개로 유상화.
+         이해력/성장단계 게이팅은 여전히 정식 버전 설계로 보류, 지금은 뼈다귀 보유 조건만 확인. -->
+    <div class="shop" id="shopPageTalk" hidden>
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
       <div class="shop-grid" id="talkShopGrid"></div>
     </div>
     <div class="back-row"><button type="button" class="back-btn" id="shopBackBtn">돌아가기</button></div>
@@ -3437,7 +3455,9 @@
     toy: ["새 장난감이 마음에 들어요!"],
     tired: ["너무 지쳐서 쉬고 싶어해요...","컨디션이 안 좋아요. 잠시 쉬게 해주세요."],
     full: ["이미 배가 불러요.","더는 못 먹겠다는 표정이에요."],
-    poor: ["코인이 모자라요."],
+    // 69번: 64번부터 "코인"과 "뼈다귀"가 이미 같은 자원(state.coins)을 가리키는데 이 멘트만 옛 이름을
+    // 쓰고 있었음 — 상점 힌트("코인으로 구매"→"뼈다귀로 구매")를 정리하는 김에 함께 통일.
+    poor: ["뼈다귀가 모자라요."],
     // 64번(기획문서 15장): 하루 종료 시퀀스(playDayEndSequence) 첫 단계에서 보여주는 하루 마무리 멘트.
     // 문서에 예시로 "오늘도 바빴네" 한 줄만 있어 그 톤을 살려 Claude가 몇 개 더 채움(오픈 이슈로 기록).
     dayEnd: ["오늘도 바빴네... 슬슬 눈이 감기나 봐요.", "하루 종일 잘 놀았다는 듯 크게 하품을 해요.", "오늘 하루도 무사히 지나갔어요."],
@@ -3907,7 +3927,7 @@
    "descPopup","descPopupTitle","descPopupText","descPopupClose",
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
-   "shopVeil","shopBackBtn","talkShopGrid",
+   "shopVeil","shopBackBtn","talkShopGrid","shopTabs","shopPageGeneral","shopPageTalk",
    "onboardVeil","nameInput","crateGrid","stepShelter","stepReveal",
    "stepSizeHint","sizeHintWord","sizeHintNext",
    "stepEyeColor","eyeColorGrid","stepCoatColor","coatColorGrid",
@@ -3951,7 +3971,29 @@
 
   // 28번: 외출하기 메뉴 — [상점]만 실제로 동작(기본돌봄에서 이동해옴), 나머지 4곳은 미구현이라 준비중 화면으로
   var placeholderReturnVeil = null;
-  el.outingShop.addEventListener("click", function(){ closeVeil(el.outingVeil); openVeil(el.shopVeil); renderTalkShop(); });
+  // 69번: 상점을 열 때마다 [일반] 탭으로 초기화(직전에 [소통버튼] 탭을 보고 있다 나갔더라도 다음에
+  // 다시 들어오면 항상 첫 탭부터 보여줌 — 애착바구니가 매번 1페이지부터 시작하는 것과 같은 원칙).
+  function switchShopTab(tab){
+    if(el.shopTabs){
+      el.shopTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+    }
+    if(el.shopPageGeneral) el.shopPageGeneral.hidden = (tab !== "general");
+    if(el.shopPageTalk) el.shopPageTalk.hidden = (tab !== "talk");
+    if(tab === "talk") renderTalkShop();
+  }
+  if(el.shopTabs){
+    el.shopTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+      btn.addEventListener("click", function(){ switchShopTab(this.dataset.tab); });
+    });
+  }
+  el.outingShop.addEventListener("click", function(){
+    closeVeil(el.outingVeil);
+    openVeil(el.shopVeil);
+    switchShopTab("general");
+    renderTalkShop();
+  });
   function openOutingPlaceholder(title){
     placeholderReturnVeil = el.outingVeil;
     closeVeil(el.outingVeil);
@@ -6975,7 +7017,11 @@
   function closeTalkIdlePrompt(){
     if(el.talkIdlePopup) el.talkIdlePopup.hidden = true;
   }
-  // 45번: 상점의 소통버튼 신규 7종 — 테스트 버전 확정 가격 0원, 이미 보유했으면 "보유중"으로 비활성화.
+  // 69번: 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 유상 구매로 전환 — 상점이 [일반]/[소통버튼]
+  // 2개 탭으로 나뉘면서 함께 반영됨. 가격은 이름 붙은 상수로 분리해 조정 가능하게 함.
+  var TALK_BUTTON_SHOP_PRICE = 10;
+  // 45번: 상점의 소통버튼 신규 7종, 이미 보유했으면 "보유중"으로 비활성화 — 69번부터 미보유 항목은
+  // 가격(뼈다귀 개수)을 보여주고, 뼈다귀가 모자라면 버튼 자체를 비활성화.
   function renderTalkShop(){
     var host = el.talkShopGrid;
     if(!host) return;
@@ -6995,7 +7041,13 @@
         btn.textContent = "보유중";
         btn.disabled = true;
       } else {
-        btn.textContent = "무료로 배우기";
+        btn.appendChild(document.createTextNode(TALK_BUTTON_SHOP_PRICE + " "));
+        var coinDot = document.createElement("span");
+        coinDot.className = "coin-dot";
+        coinDot.style.width = "10px";
+        coinDot.style.height = "10px";
+        btn.appendChild(coinDot);
+        btn.disabled = state.coins < TALK_BUTTON_SHOP_PRICE;
         btn.addEventListener("click", function(){ buyTalkButton(def.id); });
       }
       item.appendChild(name);
@@ -7009,12 +7061,17 @@
       showMessage("이미 가지고 있는 소통버튼이에요.");
       return;
     }
+    if(state.coins < TALK_BUTTON_SHOP_PRICE){
+      showMessage(pick(FLAVOR.poor));
+      return;
+    }
+    state.coins -= TALK_BUTTON_SHOP_PRICE;
     state.talkButton.owned.push(id);
     var def = findTalkButtonDef(id);
     showMessage("새 소통버튼 \"" + (def ? def.label : "") + "\"을(를) 배웠어요!");
     renderTalkShop();
     renderTalkWidget();
-    saveState();
+    saveRenderPulse();
   }
 
   // 48번(기획문서 12장): 30일 임시보호 종료 엔딩씬. "달성/미달성" 판정 로직은 문서에도 "추후 구현

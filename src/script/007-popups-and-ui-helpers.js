@@ -23,7 +23,29 @@
 
   // 28번: 외출하기 메뉴 — [상점]만 실제로 동작(기본돌봄에서 이동해옴), 나머지 4곳은 미구현이라 준비중 화면으로
   var placeholderReturnVeil = null;
-  el.outingShop.addEventListener("click", function(){ closeVeil(el.outingVeil); openVeil(el.shopVeil); renderTalkShop(); });
+  // 69번: 상점을 열 때마다 [일반] 탭으로 초기화(직전에 [소통버튼] 탭을 보고 있다 나갔더라도 다음에
+  // 다시 들어오면 항상 첫 탭부터 보여줌 — 애착바구니가 매번 1페이지부터 시작하는 것과 같은 원칙).
+  function switchShopTab(tab){
+    if(el.shopTabs){
+      el.shopTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+    }
+    if(el.shopPageGeneral) el.shopPageGeneral.hidden = (tab !== "general");
+    if(el.shopPageTalk) el.shopPageTalk.hidden = (tab !== "talk");
+    if(tab === "talk") renderTalkShop();
+  }
+  if(el.shopTabs){
+    el.shopTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+      btn.addEventListener("click", function(){ switchShopTab(this.dataset.tab); });
+    });
+  }
+  el.outingShop.addEventListener("click", function(){
+    closeVeil(el.outingVeil);
+    openVeil(el.shopVeil);
+    switchShopTab("general");
+    renderTalkShop();
+  });
   function openOutingPlaceholder(title){
     placeholderReturnVeil = el.outingVeil;
     closeVeil(el.outingVeil);
