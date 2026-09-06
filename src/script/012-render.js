@@ -70,6 +70,10 @@
     el.btnBath.disabled = !hasBones(BONE_COST_CARE);
     el.btnTreat.disabled = !hasBones(BONE_COST_CARE);
     el.btnRest.disabled = !hasBones(BONE_COST_CARE);
+    // 68번(기획문서 19장): "OO아 잠시 나갔다 올게"는 위 5개와 달리 뼈다귀 1개 소모 공통 규칙을 따르지
+    // 않고(이벤트 자체 증감이 그 자리를 대신함), 뼈다귀가 0개여도 획득형 이벤트(B·E)가 걸릴 수 있어
+    // 뼈다귀 보유 여부로 막을 이유가 없음 — 항상 눌러볼 수 있게 둠.
+    el.btnOuting.disabled = false;
     syncWalkCharges();
     // 64번(기획문서 15장, 43번 주석 대체): 예전엔 FOSTER_TEST_MODE 동안 자립감(에너지) 조건을 아예
     // 보지 않고 산책횟수 하나로만 버튼을 제어했지만, 이제 에너지 10 이하 구간(energyWalkTierFor의

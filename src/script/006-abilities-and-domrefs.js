@@ -342,7 +342,7 @@
    "trainLoyalty","trainAffinity","trainHealth","trainAggression",
    "trainConfirmBox","trainConfirmNo","trainConfirmYes",
    "bondLabel","bondFill",
-   "btnFeed","btnPlay","btnBath","btnTreat","btnRest","buySnack","buyToy",
+   "btnFeed","btnPlay","btnBath","btnTreat","btnRest","btnOuting","buySnack","buyToy",
    "resetOpen","confirmBox","confirmNo","confirmYes",
    "navInfo","navCare","navOuting","navAttach","navDex","navWalk",
    "infoVeil","infoBackBtn","resumeGrid","attachVeil","attachBackBtn","attachTabs","attachGrid",

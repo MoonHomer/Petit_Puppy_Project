@@ -66,7 +66,11 @@
       // absHour: 게임 시작부터 누적되는 절대 경과 시간(하루 경계에서도 리셋되지 않음) — 산책 3시간
       // 쿨다운처럼 "게임 내 시간으로 N시간 지났는가"를 날짜 경계와 무관하게 판정할 때 사용.
       // lastWalkAbsHour: 가장 최근 산책을 시작한 시점의 absHour(쿨다운 기준점), 아직 산책한 적 없으면 null.
-      time:{ hour:6, absHour:0, lastWalkAbsHour:null }
+      time:{ hour:6, absHour:0, lastWalkAbsHour:null },
+      // 68번(기획문서 19장): "OO아 잠시 나갔다 올게" 활동의 D 이벤트(장소 5종) 하루 내 중복 방지용 —
+      // 그날 이미 등장한 장소의 flavor 배열 인덱스를 담아두고, 하루 종료 시퀀스(playDayEndSequence)에서
+      // 매번 비워 다음 날엔 5개 장소가 전부 다시 후보로 복원되게 함.
+      outing:{ usedPlaces:[] }
     };
   }
 
@@ -182,6 +186,11 @@
   // 64번(기획문서 15장): 게임 내 시간 시스템 도입 전 저장분 마이그레이션 — 06:00부터 새로 시작.
   if(!state.time){
     state.time = { hour:6, absHour:0, lastWalkAbsHour:null };
+  }
+  // 68번(기획문서 19장): "OO아 잠시 나갔다 올게" 도입 전 저장분 마이그레이션 — 오늘 등장한 장소가
+  // 없는 상태로 새로 시작.
+  if(!state.outing){
+    state.outing = { usedPlaces:[] };
   }
 
   function stageIndex(bond){

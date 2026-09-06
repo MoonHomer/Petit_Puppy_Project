@@ -323,6 +323,109 @@
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
+  // 68번(기획문서 19장): [기본돌봄] 신규 활동 "OO아 잠시 나갔다 올게" — 위 5개 활동과 달리 BONE_COST_CARE
+  // 공통 규칙을 따르지 않고, 아래 5개 이벤트(A~E) 중 1개가 발동해 그 이벤트 자체의 "시간당 뼈다귀 증감"이
+  // 소모/지급을 대신함(사용자 확정, 2026-09-04). 다섯 이벤트 공통으로 시간당 배부름-5·유대감-2·청결도-2·
+  // 스트레스+2가 똑같이 적용되고, 이벤트별로 다른 건 시간 범위·시간당 뼈다귀·멘트뿐.
+  var OUTING_EVENTS = [
+    { id:"A", type:"drain", hoursMin:1, hoursMax:5, bonePerHour:-1,
+      flavor:["오랜만에 친구와 만나 시간 가는 줄 모르고... 아, OO!!(후다닥)"] },
+    { id:"B", type:"gain",  hoursMin:2, hoursMax:4, bonePerHour:3,
+      flavor:["OO아.. 너를 위해 열심히 사료값 벌고 왔어!"] },
+    // C(혼합형): 시간당 +1/-1을 매 시간 독립적으로 균등 추첨 — bonePerHour는 고정값이 없어 null로
+    // 표시하고, 실제 굴림은 doOuting() 안에서 시간 루프마다 처리함.
+    { id:"C", type:"mixed", hoursMin:1, hoursMax:2, bonePerHour:null,
+      flavor:["OO아, 금방 다녀올게!"] },
+    // D(소모형): 장소 5종은 시간 범위·시간당 뼈다귀 전부 동일 — flavor 배열 인덱스만 다른 순수 연출
+    // 분기(사용자 확정). 병원=0·마트=1·행복센터=2·본가=3·약속=4 순서로, 아래 doOuting()의 하루 내
+    // 중복 방지 로직(state.outing.usedPlaces)이 이 인덱스를 그대로 기록해둠.
+    { id:"D", type:"drain", hoursMin:1, hoursMax:3, bonePerHour:-2,
+      flavor:[
+        "OO아, 병원에 사람이 많아서 진료 순서가 자꾸 밀렸어. 오래 기다렸지, 미안!",
+        "장 보러 갔다가 세일하는 거 보니까 나도 모르게 정신줄을 놨지 뭐야, OO아! 미안, 조금 늦었지?",
+        "행복센터에 서류 떼러 갔는데 번호표 뽑고 한참 기다렸어, OO아! 사람이 왜 이렇게 많던지...",
+        "본가에 잠깐 들렀는데 엄마가 자꾸 밥 먹고 가라고 붙잡으시더라고, OO아! 그래서 늦었어~",
+        "거래처랑 약속이 있었는데 상대방이 늦게 오는 바람에 계속 기다렸어, OO아! 미안 진짜..."
+      ] },
+    { id:"E", type:"gain",  hoursMin:1, hoursMax:3, bonePerHour:2,
+      flavor:["OO아.. 안 쓰는 물건들 좀 정리해서 팔고 왔어! 용돈 좀 벌었지 뭐야."] }
+  ];
+  // 뼈다귀 잔량이 적을수록 획득형(B·E) 이벤트가 더 자주 뽑히도록 하는 가중치(사용자 확정: 10개 이하
+  // ×1.5, 5개 이하 ×2 — 두 조건이 겹치는 5개 이하 구간은 더 큰 쪽인 ×2만 적용, 누적 아님).
+  function outingBoneMult(){
+    if(state.coins <= 5) return 2;
+    if(state.coins <= 10) return 1.5;
+    return 1;
+  }
+  // 확률 재정규화 공식은 원안에 명시가 없어(오픈 이슈) 개발팀 재량으로 가장 단순하고 투명한 방식을
+  // 택함 — 획득형(B·E)에만 위 배율을 가중치로 곱하고, 나머지(A·C·D)는 가중치 1을 유지한 뒤 가중치
+  // 합 대비 비율로 뽑음(가중치 합 비례 추첨). 예: 뼈다귀 5개 이하면 가중치가 A1·B2·C1·D1·E2(합7)가
+  // 되어 최종 확률은 B·E 각 2/7(~28.6%), A·C·D 각 1/7(~14.3%).
+  function pickOutingEvent(){
+    var mult = outingBoneMult();
+    var weights = OUTING_EVENTS.map(function(ev){ return (ev.type === "gain") ? mult : 1; });
+    var total = weights.reduce(function(a,b){ return a + b; }, 0);
+    var roll = Math.random() * total;
+    for(var i = 0; i < OUTING_EVENTS.length; i++){
+      roll -= weights[i];
+      if(roll <= 0) return OUTING_EVENTS[i];
+    }
+    return OUTING_EVENTS[OUTING_EVENTS.length - 1];
+  }
+  // 한글 호격 조사(아/야) — 받침 있으면 "아", 없으면 "야"(josaIGa와 같은 방식, 다른 조사 쌍).
+  function josaAYa(word){
+    if(!word) return "야";
+    var last = word.charCodeAt(word.length - 1);
+    if(last >= 0xAC00 && last <= 0xD7A3){
+      return ((last - 0xAC00) % 28 === 0) ? "야" : "아";
+    }
+    return "야";
+  }
+  // 이벤트 원문의 "OO"는 반려견 이름 자리표시자 — "OO아"(호격) 패턴을 실제 이름+조사로 먼저 치환한
+  // 뒤, 조사 없이 단독으로 쓰인 나머지 "OO"(예: A의 "...아, OO!!")는 이름 그대로 치환.
+  function fillOutingName(text){
+    var name = state.name;
+    text = text.split("OO아").join(name + josaAYa(name));
+    text = text.split("OO").join(name);
+    return text;
+  }
+  function doOuting(){
+    var ev = pickOutingEvent();
+    var hours = ev.hoursMin + Math.floor(Math.random() * (ev.hoursMax - ev.hoursMin + 1));
+    var flavorText;
+    if(ev.id === "D"){
+      // D 하루 내 중복 방지(사용자 확정, 2026-09-04): 그날 이미 나온 장소는 다시 안 나오고, 다음 날
+      // 06시 리셋(playDayEndSequence)에서 5개 전부 복원됨. 이 규칙은 D 내부 장소 선택에만 적용되고
+      // 최상위 A~E 이벤트 선택 자체에는 적용되지 않음(사용자 확정).
+      var avail = [];
+      ev.flavor.forEach(function(text, idx){
+        if(state.outing.usedPlaces.indexOf(idx) === -1) avail.push(idx);
+      });
+      if(avail.length === 0){ state.outing.usedPlaces = []; avail = ev.flavor.map(function(_, idx){ return idx; }); }
+      var placeIdx = avail[Math.floor(Math.random() * avail.length)];
+      state.outing.usedPlaces.push(placeIdx);
+      flavorText = ev.flavor[placeIdx];
+    } else {
+      flavorText = ev.flavor[0];
+    }
+    // 시간 경과분을 advanceGameTime()으로 실제 한 시간씩 흘려보내(블레스드펍 2시간 보너스 등 기존
+    // 시계 로직과 정확히 맞물리도록), 매 시간 공통 감소·이벤트별 뼈다귀 증감을 함께 적용. 도중에
+    // 하루 종료 시각(DAY_END_HOUR)에 닿으면 남은 시간은 흘려보내지 않고 거기서 멈춤 — 산책과 같은
+    // 원칙(하루는 오직 "행동이 그 결과까지 처리된 직후"에만 종료 판정, 013 참고).
+    for(var h = 0; h < hours; h++){
+      var boneDelta = ev.type === "mixed" ? (Math.random() < 0.5 ? 1 : -1) : ev.bonePerHour;
+      state.coins = Math.max(0, state.coins + boneDelta);
+      state.life.hunger = clamp(state.life.hunger - 5, 0, 100);
+      state.life.bond = clamp(state.life.bond - 2, 0, 100);
+      state.life.clean = clamp(state.life.clean - 2, 0, 100);
+      state.life.stress = clamp(state.life.stress + 2, 0, 100);
+      advanceGameTime();
+      if(state.time.hour >= DAY_END_HOUR) break;
+    }
+    showMessage(fillOutingName(flavorText));
+    saveRenderPulse();
+    maybeTriggerDayEnd();
+  }
   function doBuySnack(){
     if(state.coins < 10){ showMessage(pick(FLAVOR.poor)); return; }
     state.coins -= 10;

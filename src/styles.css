@@ -25,6 +25,10 @@
     --rest:#7C93D1;
     --rest-deep:#5A72B0;
 
+    /* 68번: [기본돌봄] "OO아 잠시 나갔다 올게" 신규 활동 전용 색상(외출·여행 가방을 떠올리는 갈색 톤) */
+    --outing:#BD7A3E;
+    --outing-deep:#8F5A26;
+
     /* 28-2번: 등급(A~E) 배지 · 능력카드 셀 전용 색상(코랄핑크/민트그레이) */
     --grade-c:#FF6F91;
     --grade-d:#8FC8EE;
@@ -83,6 +87,9 @@
       --rest:#9AAEE0;
       --rest-deep:#B9C6ED;
 
+      --outing:#E0AD72;
+      --outing-deep:#F0CDA0;
+
       --grade-c:#FF89A8;
       --grade-d:#7FB8E0;
       --mint-gray:#7E9A91;
@@ -135,6 +142,9 @@
     --treat-deep:#F3C285;
     --rest:#9AAEE0;
     --rest-deep:#B9C6ED;
+
+    --outing:#E0AD72;
+    --outing-deep:#F0CDA0;
 
     --grade-c:#FF89A8;
     --grade-d:#7FB8E0;
@@ -676,6 +686,7 @@
   .act-bath{ background:var(--sky); --btn-shadow:var(--sky-deep); }
   .act-treat{ background:var(--treat); --btn-shadow:var(--treat-deep); }
   .act-rest{ background:var(--rest); --btn-shadow:var(--rest-deep); }
+  .act-outing{ background:var(--outing); --btn-shadow:var(--outing-deep); }
   .act-btn.act-span{ grid-column:1 / -1; }
 
   /* ---- shop ---- */

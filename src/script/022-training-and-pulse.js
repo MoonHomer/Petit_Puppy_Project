@@ -88,6 +88,7 @@
   el.btnBath.addEventListener("click", doBath);
   el.btnTreat.addEventListener("click", doTreat);
   el.btnRest.addEventListener("click", doRest);
+  el.btnOuting.addEventListener("click", doOuting);
   el.buySnack.addEventListener("click", doBuySnack);
   el.buyToy.addEventListener("click", doBuyToy);
 
