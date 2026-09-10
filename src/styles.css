@@ -1500,7 +1500,10 @@
   .walk-title{ font-family:var(--font-display); font-weight:600; font-size:0.95rem; color:var(--ink); }
   .walk-count{ font-family:var(--font-mono); font-size:0.7rem; font-weight:700; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
   .walk-scene{
-    position:relative; height:120px; overflow:hidden;
+    /* 72번: 기존엔 height를 120px로 고정해 카드 너비에 따라 가로세로비가 2.6~3:1 정도로 늘어지고,
+       캔버스 내부 좌표계(PX_W×PX_H=150×100=3:2)와 실제 표시 박스 비율이 어긋나 배경이 가로로
+       늘어나 보였음 — 사용자 요청대로 화면 비율을 3:2로 고정(높이는 너비에 따라 자동 계산). */
+    position:relative; aspect-ratio:3/2; overflow:hidden;
     border-radius:14px; border:1px solid var(--line);
   }
   /* 71번(산책 화면 실제 반영, 025번 JS 참고): 좌우로 오가던 기존 연출을 역POV(정면 접근) 연출로 전면

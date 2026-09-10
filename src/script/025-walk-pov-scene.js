@@ -30,6 +30,9 @@
   function ease(d){ return Math.pow(1-d, 1.6); } // d:0(가까움)~1(지평선) -> 0..1 스케일
   function screenY(d){ return walkPovHorizon() + (PX_H - walkPovHorizon()) * ease(d); }
   function roadHalfWidth(d){ var s = ease(d); return (3 + s*82) * walkPovScale(); }
+  // 72번: 사용자 요청 — 산책이벤트 화면 반려견의 기존 표시 크기(비율 1)를 1.2배로 확대. walkPovHorizon()/
+  // walkPovScale()과 같은 이유로 top-level var가 아닌 함수로 둠(025번 파일 로드 순서 관련 호이스팅 주의사항 참고).
+  function walkPovDogScale(){ return 1.2; }
 
   function roundRect(ctx, x, y, w, h, r){
     ctx.beginPath();
@@ -224,7 +227,7 @@
     var d = Math.max(0.02, 1 - dogLoopPhase); // d:1(지평선)~0(카메라 코앞)
     var sy = screenY(d);
     var s = ease(d);
-    var sc = bf.scale * gv.scale; // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일)
+    var sc = bf.scale * gv.scale * walkPovDogScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2)
     var earPerk = gv.earPerk;
     var sway = Math.sin(t*2.1) * 5 * s * sc;
     var bob = Math.sin(t*6.4) * 1.4 * s * sc;

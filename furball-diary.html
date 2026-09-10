@@ -1507,7 +1507,10 @@
   .walk-title{ font-family:var(--font-display); font-weight:600; font-size:0.95rem; color:var(--ink); }
   .walk-count{ font-family:var(--font-mono); font-size:0.7rem; font-weight:700; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
   .walk-scene{
-    position:relative; height:120px; overflow:hidden;
+    /* 72번: 기존엔 height를 120px로 고정해 카드 너비에 따라 가로세로비가 2.6~3:1 정도로 늘어지고,
+       캔버스 내부 좌표계(PX_W×PX_H=150×100=3:2)와 실제 표시 박스 비율이 어긋나 배경이 가로로
+       늘어나 보였음 — 사용자 요청대로 화면 비율을 3:2로 고정(높이는 너비에 따라 자동 계산). */
+    position:relative; aspect-ratio:3/2; overflow:hidden;
     border-radius:14px; border:1px solid var(--line);
   }
   /* 71번(산책 화면 실제 반영, 025번 JS 참고): 좌우로 오가던 기존 연출을 역POV(정면 접근) 연출로 전면
@@ -7863,6 +7866,9 @@
   function ease(d){ return Math.pow(1-d, 1.6); } // d:0(가까움)~1(지평선) -> 0..1 스케일
   function screenY(d){ return walkPovHorizon() + (PX_H - walkPovHorizon()) * ease(d); }
   function roadHalfWidth(d){ var s = ease(d); return (3 + s*82) * walkPovScale(); }
+  // 72번: 사용자 요청 — 산책이벤트 화면 반려견의 기존 표시 크기(비율 1)를 1.2배로 확대. walkPovHorizon()/
+  // walkPovScale()과 같은 이유로 top-level var가 아닌 함수로 둠(025번 파일 로드 순서 관련 호이스팅 주의사항 참고).
+  function walkPovDogScale(){ return 1.2; }
 
   function roundRect(ctx, x, y, w, h, r){
     ctx.beginPath();
@@ -8057,7 +8063,7 @@
     var d = Math.max(0.02, 1 - dogLoopPhase); // d:1(지평선)~0(카메라 코앞)
     var sy = screenY(d);
     var s = ease(d);
-    var sc = bf.scale * gv.scale; // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일)
+    var sc = bf.scale * gv.scale * walkPovDogScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2)
     var earPerk = gv.earPerk;
     var sway = Math.sin(t*2.1) * 5 * s * sc;
     var bob = Math.sin(t*6.4) * 1.4 * s * sc;
