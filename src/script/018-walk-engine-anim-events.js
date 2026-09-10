@@ -2,37 +2,34 @@
     var extra = el.dogWrap.className.replace("dog-wrap", "").trim();
     el.walkDogWrap.className = ("dog-wrap walk-dog-wrap " + extra).trim();
     if(el.walkDogTrack) el.walkDogTrack.classList.toggle("pixel-mode", !!state.pixelMode);
-    // 32번: 픽셀모드 산책 캔버스를 "대형견 기준 체고=팝업 높이의 2/3" 배율로 확대
-    if(el.walkPixelCanvas){
-      el.walkPixelCanvas.style.width = WALK_CANVAS_DISPLAY_W + "px";
-      el.walkPixelCanvas.style.height = WALK_CANVAS_DISPLAY_H + "px";
-    }
+    // 71번: 배경·반려견 캔버스 모두 이제 CSS로 항상 .walk-scene 전체를 100% 채우므로(025번), 예전처럼
+    // JS로 픽셀 크기를 직접 계산해 넣어줄 필요가 없어짐(32번 WALK_CANVAS_DISPLAY_W/H 로직 제거).
+    drawWalkPovBackground();
     drawWalkPixelDog();
   }
 
-  // 산책 중임을 시각적으로 보여주기 위해, 팝업 안에서 반려견이 화면을 좌우로 오가며 걷는 애니메이션.
-  // 속도는 매번 오갈 때마다 랜덤하게 바뀌어(빠르게/느리게) 단조롭지 않게 함. reduce-motion이면 정지된 채로 둠.
-  var walkAnimId = null, walkAnimX = 0, walkAnimDir = 1, walkAnimSpeed = 50, walkAnimLastTs = null;
+  // 71번(산책 화면 실제 반영): 예전엔 이 함수가 반려견 스프라이트를 화면 좌우로 왕복시키는 DOM 트랜스폼
+  // 루프였지만, 역POV(정면 접근) 개편으로 반려견이 더 이상 좌우로 걷지 않고 지평선에서 카메라 쪽으로
+  // 다가왔다가 다시 멀어지는 루프를 도는 형태로 바뀌어(025-walk-pov-scene.js) 이 함수의 역할도
+  // "매 프레임 배경·반려견 캔버스를 함께 다시 그리는 rAF 루프"로 완전히 바뀜. reduce-motion이면 애니메이션
+  // 루프 없이 정지 프레임 한 장만 그림(완전히 빈 화면으로 두지 않기 위함).
+  var walkAnimId = null, walkAnimLastTs = null;
   function startWalkAnim(){
     stopWalkAnim();
-    if(reduceMotion()){ return; }
-    walkAnimX = 0; walkAnimDir = 1; walkAnimSpeed = 30 + Math.random()*50;
+    resetWalkPovScene();
+    if(reduceMotion()){
+      drawWalkPovBackground();
+      drawWalkPixelDog();
+      return;
+    }
     walkAnimLastTs = null;
     function frame(ts){
       if(walkAnimLastTs === null) walkAnimLastTs = ts;
       var dt = Math.min((ts - walkAnimLastTs) / 1000, 0.1);
       walkAnimLastTs = ts;
-      // 32번: 픽셀모드는 캔버스가 훨씬 커졌으니(WALK_CANVAS_DISPLAY_W) 걷는 범위도 그 폭만큼 넉넉히 빼줘야
-      // 화면 밖으로 밀려나지 않음. 일반(CSS) 모드는 기존 강아지 박스(0.6배 기준 약 90px) 그대로.
-      var spriteVisualW = state.pixelMode ? WALK_CANVAS_DISPLAY_W : 90;
-      var trackWidth = Math.max(30, (el.walkScene ? el.walkScene.clientWidth : 260) - spriteVisualW);
-      walkAnimX += walkAnimDir * walkAnimSpeed * dt;
-      if(walkAnimX >= trackWidth){ walkAnimX = trackWidth; walkAnimDir = -1; walkAnimSpeed = 25 + Math.random()*60; }
-      if(walkAnimX <= 0){ walkAnimX = 0; walkAnimDir = 1; walkAnimSpeed = 25 + Math.random()*60; }
-      el.walkDogTrack.style.left = walkAnimX + "px";
-      var flip = walkAnimDir >= 0 ? 1 : -1;
-      el.walkDogWrap.style.transform = "scale(0.6) scaleX(" + flip + ")";
-      if(el.walkPixelCanvas) el.walkPixelCanvas.style.transform = "scaleX(" + flip + ")";
+      updateWalkPovScene(dt);
+      drawWalkPovBackground();
+      drawWalkPixelDog();
       walkAnimId = window.requestAnimationFrame(frame);
     }
     walkAnimId = window.requestAnimationFrame(frame);
@@ -87,14 +84,16 @@
   function spawnWalkParticles(kind){
     if(reduceMotion() || !el.walkDogTrack) return;
     var color = WALK_PARTICLE_COLORS[kind] || "#FFFFFF";
-    var spriteW = state.pixelMode ? WALK_CANVAS_DISPLAY_W : 90;
+    // 71번: 반려견이 더 이상 화면 좌측에서 우측으로 걷는 작은 스프라이트가 아니라(역POV 개편, 025번),
+    // 항상 화면 가로 중앙 부근에서 원근에 따라 커지며 다가오므로, 입자도 트랙 전체 폭 기준 중앙 부근에서 뿌림.
+    var trackW = el.walkDogTrack.clientWidth || 260;
     for(var n=0; n<5; n++){
       var p = document.createElement("div");
       p.className = "walk-particle";
       var size = kind === "sparkle" ? 5 : 7;
       p.style.width = size + "px"; p.style.height = size + "px";
       p.style.background = color;
-      p.style.left = (spriteW*0.3 + Math.random()*spriteW*0.4) + "px";
+      p.style.left = (trackW*0.36 + Math.random()*trackW*0.28) + "px";
       p.style.bottom = (10 + Math.random()*24) + "px";
       p.style.animation = "walkParticleFloat " + (0.7 + Math.random()*0.4) + "s ease-out forwards";
       p.style.animationDelay = (Math.random()*0.2) + "s";

@@ -1503,37 +1503,35 @@
     position:relative; height:120px; overflow:hidden;
     border-radius:14px; border:1px solid var(--line);
   }
-  .walk-scene-sky{
-    position:absolute; inset:0;
-    background:linear-gradient(180deg, color-mix(in srgb, var(--sky) 30%, var(--card-2)) 0%, var(--card-2) 100%);
+  /* 71번(산책 화면 실제 반영, 025번 JS 참고): 좌우로 오가던 기존 연출을 역POV(정면 접근) 연출로 전면
+     교체 — 배경(하늘·바닥·도로·소품)은 #walkPovCanvas 한 장에서 전부 그리고, .walk-scene-sky/
+     .walk-scene-ground(단색 그라디언트 배경)는 완전히 대체돼 제거함. */
+  .walk-pov-canvas{
+    position:absolute; inset:0; display:block;
+    width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges;
   }
-  .walk-scene-ground{
-    position:absolute; left:0; right:0; bottom:0; height:26px;
-    background:color-mix(in srgb, var(--moss) 30%, var(--card-2));
-    border-top:2px dashed var(--line-strong);
-  }
-  .walk-dog-track{ position:absolute; left:0; bottom:14px; }
+  /* 71번: 예전엔 이 트랙 전체를 좌우로(style.left) 밀어 "왕복 걷기"를 표현했지만, 이제 반려견은
+     캔버스 안에서 원근 공식으로 직접 위치가 계산되므로(025번 drawWalkFrontDog) 트랙 자체는 화면
+     전체를 덮는 정적 래퍼로만 남김. */
+  .walk-dog-track{ position:absolute; inset:0; }
   .walk-dog-track .dog-wrap.walk-dog-wrap{
     position:absolute; left:0; bottom:0; top:auto;
     transform:scale(0.6);
     transform-origin:bottom center;
   }
   /* 28번: 산책 팝업도 메인화면과 같은 픽셀모드 설정을 따름 — 픽셀모드일 땐 캔버스로, 아니면 기존 CSS 강아지로.
-     34번: 캔버스를 #walkPixelPoseWrap로 한 겹 감싸 "좌우 왕복 애니메이션(캔버스 자체의 flip)"과
-     "이벤트 포즈 애니메이션(래퍼)"이 같은 transform 속성을 두고 서로 덮어쓰지 않게 분리함. */
+     34번: 캔버스를 #walkPixelPoseWrap로 한 겹 감싸 "이벤트 포즈 애니메이션(래퍼)"이 배경 캔버스와
+     서로 덮어쓰지 않게 분리함(71번: 좌우 왕복용 flip 트랜스폼은 역POV 개편으로 더 이상 쓰지 않음). */
   .walk-pixel-pose{
     display:none;
-    position:absolute; left:0; bottom:0;
-    transform-origin:bottom center;
+    position:absolute; inset:0;
   }
   .walk-dog-track.pixel-mode .walk-pixel-pose{ display:block; }
   .walk-pixel-canvas{
     display:block;
-    /* 32번: 기본값은 JS(WALK_CANVAS_DISPLAY_W/H)가 즉시 덮어씀 — "대형견 기준 체고가 팝업 높이의 2/3"로 역산한 값.
-       JS 실행 전 아주 잠깐 보일 수 있는 대체값이라 대략 같은 크기로 맞춰둠. */
-    width:324px; height:216px;
+    width:100%; height:100%;
     image-rendering:pixelated; image-rendering:crisp-edges;
-    transform-origin:bottom center;
   }
   .walk-dog-track.pixel-mode .dog-wrap.walk-dog-wrap{ display:none; }
   .walk-head{ display:flex; align-items:center; gap:12px; }

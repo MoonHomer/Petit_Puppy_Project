@@ -811,14 +811,18 @@
     if(opts.showEnvelope) drawEndingEnvelope(ctx, groundRow, opts.auraPhase || 0);
   }
 
-  // 28번: 산책 팝업 안의 강아지도 픽셀모드일 땐 같은 drawPixelDog()로 그려서 메인화면과 그래픽이 일치하게 함.
-  // 배경(하늘·바닥)은 이미 walk-scene의 CSS 그라디언트가 있으니, 여기선 강아지만 투명 배경에 그림.
+  // 28번 → 71번(산책 화면 실제 반영)에서 전면 교체: 산책 팝업의 반려견은 더 이상 마당과 같은 뒷모습
+  // drawPixelDog()가 아니라, 역POV(정면 접근) 전용으로 새로 그린 drawWalkFrontDog()(025번)를 씀 —
+  // 함수 이름과 호출부(syncWalkDogVisual/applyPixelMode/startPixelAnimation의 blink·tail·bob 타이머 등)는
+  // 그대로 두고 내부 구현만 바꿔서, 이 함수를 부르는 다른 코드는 전혀 손대지 않아도 되게 함.
+  // 배경(하늘·바닥·도로·소품)은 이제 별도 레이어 #walkPovCanvas(drawWalkPovBackground, 025번)가 그리므로
+  // 여기선 여전히 반려견만 투명 배경에 그림.
   function drawWalkPixelDog(){
     if(!el.walkPixelCanvas || !el.walkPixelCanvas.getContext) return;
     var ctx = el.walkPixelCanvas.getContext("2d");
     if(!ctx) return;
     ctx.clearRect(0, 0, PX_W, PX_H);
-    drawPixelDog(ctx, PX_H - 4);
+    drawWalkFrontDog(ctx, Date.now() / 1000);
   }
 
   function stopPixelAnimation(){

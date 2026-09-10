@@ -360,7 +360,7 @@
    "walkVeil","walkTitle","walkFace","walkStaminaFill","walkStaminaLabel","walkEventCount","walkLog","walkBook",
    "walkSummaryBox","walkSummaryText","walkSummaryMeta","walkSummaryStats","walkSummaryItemSection","walkSummaryItemChips",
    "walkSummaryClose","walkReturnBtn",
-   "walkScene","walkDogTrack","walkDogWrap","walkDogEl","walkPixelCanvas","walkPixelPoseWrap",
+   "walkScene","walkDogTrack","walkDogWrap","walkDogEl","walkPovCanvas","walkPixelCanvas","walkPixelPoseWrap",
    "talkWidgetBtn","talkWidgetCount","talkVeil","talkUsedHint","talkBtnGrid","talkSaidBox","talkSaidWords","talkCloseBtn",
    "talkIdlePopup","talkIdlePopupText","talkIdleNo","talkIdleYes",
    "walkIntervenePopup","walkIntervenePopupText","walkIntervenePopupBtns",
