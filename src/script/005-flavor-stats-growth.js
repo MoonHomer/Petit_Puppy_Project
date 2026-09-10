@@ -64,6 +64,24 @@
   // (유대감 누적치로 아기→청소년→성견을 가르는, 반려견 실루엣용 완전히 별개의 시스템)와 이름이 겹치지
   // 않도록 전부 GROWTH_ 접두사를 사용함 — 서로 관련 없는 두 "성장 단계" 개념이니 혼동 주의.
   var GROWTH_STAGE_NAMES = ["털뭉치","개춘기","찹츄","찹찹츄"];
+  // 70번(기획 문서 20장, 성장 단계 시각화 1차 확정): 그래픽을 새로 그리지 않고 "파라미터 변형"만으로
+  // 4단계를 표현 — GROWTH_STAGE_NAMES와 완전히 같은 순서(인덱스 0~3)로 나열.
+  // scale: drawPixelDog()가 그리는 체고(H) 배율(70/85/100/90%, 사용자가 Claude 원안 75/90/100/95에서
+  // 최종 조정). timeMult: 멍멍모드 유휴 포즈·산책 이벤트 포즈 애니메이션의 지속시간 배율(1보다 작으면
+  // "빠르고 부산스럽게", 크면 "느리고 여유롭게" — 사용자가 표로 지정한 속도감을 수치로 변환한 값이라
+  // 정확한 배율 자체는 개발팀 판단, 오픈 이슈). earPerk: 귀 크기 추가 배율(쫑긋한/처진 인상 보정).
+  // headDroop: 머리를 살짝 낮춰 그릴 픽셀 오프셋. grey: true면 찹찹츄 전용 "입가·눈가 옅은 회색 톤" +
+  // 털색 옅은 탈채도(6장 세계관의 "늙어감" 정서를 그래픽에 처음 반영).
+  var GROWTH_STAGE_VISUAL = [
+    { scale:0.70, timeMult:0.72, earPerk:1.10, headDroop:0, grey:false }, // 털뭉치: 통통 튀는 느낌·귀가 쫑긋·빠르고 부산스럽게
+    { scale:0.85, timeMult:0.88, earPerk:1.0,  headDroop:0, grey:false }, // 개춘기: 활발함·약간 들뜬 자세·보통보다 살짝 빠르게
+    { scale:1.00, timeMult:1.0,  earPerk:1.0,  headDroop:0, grey:false }, // 찹츄: 안정적인 기본 자세·기준 속도
+    { scale:0.90, timeMult:1.35, earPerk:0.92, headDroop:2, grey:true  }  // 찹찹츄: 고개가 살짝 낮음·느리고 여유롭게·회색 톤
+  ];
+  function growthVisual(){
+    var idx = (typeof state !== "undefined" && typeof state.growthStage === "number") ? state.growthStage : 2;
+    return GROWTH_STAGE_VISUAL[idx] || GROWTH_STAGE_VISUAL[2];
+  }
   // 시작 성장단계별 초기 스탯 비율(성장최대기대치 대비 [최소,최대]) — 8개 스탯 각각 독립적으로 굴리고
   // 절사(Math.floor)함. 시작 확률은 4단계 균등(25%)이 문서의 기본값.
   var GROWTH_STAGE_RATIO = [[0.30,0.50],[0.60,0.90],[0.90,1.00],[0.20,0.50]];

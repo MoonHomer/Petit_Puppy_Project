@@ -217,6 +217,10 @@
     });
     var flavor = GROWTH_TRANSITION_FLAVOR[hit.to];
     if(flavor) showDescPopup(flavor.title, flavor.desc);
+    // 70번(20장): 전환 즉시(점진적 전환 아님) 새 단계의 스케일·자세·색감이 반영되도록 화면을 다시
+    // 그리고, 눈깜빡임/꼬리/숨쉬기 타이머도 새 timeMult로 재시작(setInterval 주기는 생성 시점 고정이라
+    // 다시 만들어야 함) — 산책 중 전환되면 멈춰있던 마당 화면은 홈으로 돌아온 뒤 반영됨.
+    if(state.pixelMode){ drawPixelScene(); startPixelAnimation(); }
   }
 
   // 65번(16장): '미라클멍잉'/'올빼미독' — 산책을 시작하는 그 순간의 게임 내 시계(state.time.hour)

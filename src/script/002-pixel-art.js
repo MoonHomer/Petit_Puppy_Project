@@ -46,6 +46,21 @@
     try{ return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
     catch(e){ return false; }
   }
+  // 70번: 찹찹츄(노년기) 전용 "옅은 회색 톤"용 — 원색을 유지한 채 자기 평균 밝기(회색) 쪽으로만
+  // amount만큼 당겨서, 팔레트가 달라도(모색 20종) 항상 자연스럽게 탈채도되도록 함.
+  function mixHexToGrey(hex, amount){
+    try{
+      var m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+      if(!m) return hex;
+      var r = parseInt(m[1].slice(0,2),16), g = parseInt(m[1].slice(2,4),16), b = parseInt(m[1].slice(4,6),16);
+      var grey = Math.round((r+g+b)/3);
+      r = Math.round(r + (grey-r)*amount);
+      g = Math.round(g + (grey-g)*amount);
+      b = Math.round(b + (grey-b)*amount);
+      function h2(n){ var s = n.toString(16); return s.length < 2 ? "0"+s : s; }
+      return "#" + h2(r) + h2(g) + h2(b);
+    }catch(e){ return hex; }
+  }
 
   var pixelBlink = false, pixelTailFrame = false, pixelBobUp = false;
   var pixelBlinkTimer = null, pixelTailTimer = null, pixelBobTimer = null;
@@ -62,7 +77,11 @@
     var sc = BREED_PXSCALE[breedId] || BREED_PXSCALE.golden;
     var earStyle = sc.earStyle || "floppy";
     var tailStyle = sc.tailStyle || "wag";
-    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX));
+    // 70번(20장): 성장 단계별 시각 변수 — 체고(H)에 스케일을 곱해 다리·몸통·머리 등 모든 하위 치수가
+    // 비율 그대로 함께 줄어들게 함(다리 길이가 짧아져도 bodyBottom=groundRow-legH 공식 덕에 발은 항상
+    // 접지선에 그대로 붙어있음 — 별도 캔버스 좌표 보정 불필요).
+    var gv = growthVisual();
+    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     var legH = Math.max(2, Math.round(H * sc.legRatio));
     var bodyH = Math.max(3, Math.round(H * (sc.bodyHRatio || 0.40)));
@@ -79,7 +98,8 @@
     var bodyTop = bodyBottom - bodyH;
     // 머리는 몸통 앞쪽(오른쪽) 끝에 상당 부분 겹쳐 붙어, 목이 끊겨 보이지 않도록 함
     var headLeft = bodyRight - Math.round(headW*0.68);
-    var headBottom = bodyTop + Math.round(bodyH*0.55);
+    // 70번: 찹찹츄는 headDroop만큼 머리를 살짝 낮춰 그려 "고개가 살짝 낮음" 자세를 표현
+    var headBottom = bodyTop + Math.round(bodyH*0.55) + (gv.headDroop || 0);
     var headTop = headBottom - headH;
     var headRight = headLeft + headW;
 
@@ -92,6 +112,13 @@
     var furC = cssVar("--fur-c", "#EDEDED");
     var furD = cssVar("--fur-d", "#4A4038");
     var eyeColor = cssVar("--eye-color", furD);
+    // 70번: 찹찹츄는 몸통·귀 털색을 옅게 탈채도(전신에 은은하게) — 코·눈동자(furD/eyeColor)는 그대로
+    // 두어 표정이 흐려지지 않게 함. "입가·눈가 회색 톤" 디테일 포인트는 아래 주둥이/눈 블록 근처에서
+    // 별도로 반투명 패치를 얹어 표현.
+    if(gv.grey){
+      furA = mixHexToGrey(furA, 0.32);
+      furADark = mixHexToGrey(furADark, 0.32);
+    }
 
     // 다리 — 앞다리/뒷다리 각 2개씩, "먼 쪽 다리 + 가까운 쪽 다리"로 겹쳐 그려 네 발 짐승처럼 보이게 함
     var legW = Math.max(1, Math.round(bodyW*0.14));
@@ -165,7 +192,8 @@
     // 귀 — "먼 쪽 귀 + 가까운 쪽 귀" 두 개를 살짝 겹쳐 그려, 옆모습이어도 귀가 하나만 있는
     // 것처럼 허전해 보이지 않게 함. 처진 귀는 아래로 늘어지고, 쫑긋 선 귀는 위로 솟음.
     // 모색과 무관하게 항상 또렷이 구분되도록 각 팔레트의 "짙은" 색(aDark)을 사용
-    var earScale = sc.earScale || 1;
+    // 70번: 털뭉치는 귀가 조금 더 쫑긋(earPerk>1), 찹찹츄는 살짝 처짐(earPerk<1)
+    var earScale = (sc.earScale || 1) * gv.earPerk;
     if(earStyle === "erect"){
       var earW = Math.max(2, Math.round(headW*0.30*earScale));
       var earH = Math.max(2, Math.round(headH*0.62*earScale));
@@ -206,6 +234,22 @@
     var noseH = Math.max(1, Math.round(snoutH*0.5));
     ctx.fillStyle = furD;
     ctx.fillRect(snoutLeft + snoutW - noseW, snoutTop + Math.round(snoutH*0.18) + oy, noseW, noseH);
+
+    // 70번(찹찹츄 디테일 포인트): 입가·눈가에 옅은 회색 톤 — 반투명 패치를 배경(주둥이/얼굴) 위에
+    // 얹어서 표현하고, 눈은 이 패치보다 나중에 그려 또렷함을 유지함(패치가 눈동자를 가리지 않게).
+    if(gv.grey){
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = "#B7B2A4";
+      // 입가: 주둥이 뿌리 쪽에 옅게
+      ctx.fillRect(snoutLeft - Math.round(snoutW*0.1), snoutTop + Math.round(snoutH*0.05) + oy, Math.round(snoutW*0.55), Math.round(snoutH*0.45));
+      // 눈가: 눈 주변에 옅게(아래에서 계산할 eyeY와 같은 기준을 앞당겨 사용)
+      var greySpot = Math.max(2, Math.round(headW*0.22));
+      var greyEyeY = headTop + Math.round(headH*0.42) - Math.round(greySpot*0.3);
+      ctx.fillRect(headLeft + Math.round(headW*0.24), greyEyeY + oy, greySpot, greySpot);
+      ctx.fillRect(headLeft + Math.round(headW*0.56), greyEyeY + oy, greySpot, greySpot);
+      ctx.restore();
+    }
 
     // 눈 — 두 개, 감은 눈은 가는 선으로 표현
     var eyesClosed = forceEyesClosed ? true : (mood === "sleepy" ? true : pixelBlink);
@@ -535,7 +579,9 @@
   }
   function scheduleNextPixelIdlePose(){
     if(reduceMotion()) return;
-    var gap = 4000 + Math.random() * 5000; // 포즈 사이 "그냥 숨쉬기" 간격 4~9초
+    // 70번: 성장 단계별 timeMult를 곱해 "빠르고 부산스럽게(털뭉치)"~"느리고 여유롭게(찹찹츄)" 체감
+    // 차이를 냄 — 기준 간격(찹츄, timeMult=1) 자체는 53번에 확정된 4~9초 그대로.
+    var gap = (4000 + Math.random() * 5000) * growthVisual().timeMult;
     pixelIdlePoseGapTimer = window.setTimeout(playRandomPixelIdlePose, gap);
   }
   function playRandomPixelIdlePose(){
@@ -543,7 +589,7 @@
     var pose = PIXEL_IDLE_POSES[Math.floor(Math.random() * PIXEL_IDLE_POSES.length)];
     pixelIdlePose = pose.id;
     pixelIdlePoseStartTs = Date.now();
-    pixelIdlePoseDurMs = pose.minMs + Math.random() * (pose.maxMs - pose.minMs);
+    pixelIdlePoseDurMs = (pose.minMs + Math.random() * (pose.maxMs - pose.minMs)) * growthVisual().timeMult;
     if(pixelIdlePoseTickTimer) window.clearInterval(pixelIdlePoseTickTimer);
     pixelIdlePoseTickTimer = window.setInterval(function(){
       if(Date.now() - pixelIdlePoseStartTs >= pixelIdlePoseDurMs){
@@ -783,16 +829,20 @@
   function startPixelAnimation(){
     stopPixelAnimation();
     if(reduceMotion()) return;
+    // 70번: 눈 깜빡임/꼬리/들썩임(숨쉬기) 기본 주기도 timeMult만큼 늘리거나 줄여 성장 단계 속도감을
+    // 상시 애니메이션에도 반영 — checkGrowthStageTransition()이 단계 전환 시 이 함수를 다시 불러 새
+    // timeMult로 타이머를 재시작함(setInterval 주기는 생성 시점에 고정되므로).
+    var tm = growthVisual().timeMult;
     pixelBlinkTimer = window.setInterval(function(){
       pixelBlink = true; drawPixelScene(); drawWalkPixelDog();
       window.setTimeout(function(){ pixelBlink = false; drawPixelScene(); drawWalkPixelDog(); }, 160);
-    }, 3200);
+    }, Math.round(3200 * tm));
     pixelTailTimer = window.setInterval(function(){
       pixelTailFrame = !pixelTailFrame; drawPixelScene(); drawWalkPixelDog();
-    }, 450);
+    }, Math.round(450 * tm));
     pixelBobTimer = window.setInterval(function(){
       pixelBobUp = !pixelBobUp; drawPixelScene(); drawWalkPixelDog();
-    }, 900);
+    }, Math.round(900 * tm));
     // 53번: 멍멍모드 — 위 세 타이머와 별개로, 숨쉬기 사이사이 무작위 간격을 두고 12종 유휴 포즈 중
     // 하나를 균등 확률로 골라 재생. 산책 팝업(drawWalkPixelDog)에는 적용하지 않음(메인 마당 전용).
     scheduleNextPixelIdlePose();

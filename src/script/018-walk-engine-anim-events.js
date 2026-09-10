@@ -61,13 +61,21 @@
       walkPoseClass = null;
     }
   }
+  // 70번(20장, 산책 애니메이션 확충): anim/particle 자체는 34번부터 이미 이벤트 데이터(WALK_EVENTS 등
+  // "애니메이션"/"입자효과" 컬럼)와 CSS 트랜스폼 애니메이션(styles.css .walk-pose-*)으로 연결돼 있어
+  // 사용자가 요청한 9종 포즈+3종 입자효과는 이미 실제로 재생되고 있음(완료 보고에서 확인) — 이번에
+  // 추가한 건 성장 단계별 timeMult를 "--pose-speed" CSS 변수로 실어 보내, 같은 포즈라도 성장 단계에
+  // 따라 재생 속도(애니메이션 지속시간 자체)가 달라지도록 한 것뿐.
   function playWalkPose(anim, particle){
     clearWalkPose();
     if(anim && !reduceMotion()){
       var cls = "walk-pose-" + anim;
-      [el.walkDogEl, el.walkPixelPoseWrap].forEach(function(t){ if(t) t.classList.add(cls); });
+      var speed = growthVisual().timeMult;
+      [el.walkDogEl, el.walkPixelPoseWrap].forEach(function(t){
+        if(t){ t.style.setProperty("--pose-speed", speed); t.classList.add(cls); }
+      });
       walkPoseClass = cls;
-      walkPoseTimer = window.setTimeout(clearWalkPose, WALK_POSE_DURATION);
+      walkPoseTimer = window.setTimeout(clearWalkPose, WALK_POSE_DURATION * speed);
     }
     if(particle) spawnWalkParticles(particle);
   }
