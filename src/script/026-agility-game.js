@@ -38,11 +38,11 @@
     return seq;
   }
 
-  // 사용자 확정 공식: 유대감/5 + 민첩성/5 + 이해력/5 + 수행력/5 + (충성도/10 + 친화력/10) — 5개 스탯
-  // 슬롯이 각 20점(충성도·친화력만 10점씩 나눠 합쳐 20점) 만점으로 합산돼 최대 100.
+  // 74-2번(사용자 비중 조정 요청): 5개 스탯의 만점 배분을 유대감10 / 민첩성30 / 이해력25 / 수행력25 /
+  // 충성도&친화력10(각 5점씩 나눠 합쳐 10)으로 변경. 전부 100이면 10+30+25+25+5+5=100.
   function agilityFidelityScore(){
     var c = state.core, L = state.life;
-    var score = (L.bond/5) + (c.agility/5) + (c.comprehension/5) + (c.execution/5) + (c.loyalty/10) + (c.affinity/10);
+    var score = (L.bond/10) + (c.agility*3/10) + (c.comprehension/4) + (c.execution/4) + (c.loyalty/20) + (c.affinity/20);
     return clamp(score, 0, 100);
   }
   var AGILITY_TIER_BASE = [
