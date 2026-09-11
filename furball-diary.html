@@ -7095,12 +7095,29 @@
   }
   // 46번: 화면 조작이 TALK_BUTTON_IDLE_MS만큼 없었을 때(진짜 유휴 상태) 뜨는 확인 팝업 —
   // 61번 충전식과 완전히 무관하며(사용자 지시로 그대로 유지), [호응해준다]를 눌러야만 실제로 소통버튼 팝업이 열림.
+  // 73번: 이 팝업이 노출된 뒤 TALK_BUTTON_IDLE_AUTO_DISMISS_MS(4초) 동안 [호응해준다]/[무시한다] 중
+  // 아무것도 누르지 않으면 자동으로 닫히고, 그 "무응답" 경로에서만 유대감-1·스트레스+1 페널티가 적용됨
+  // (사용자 명시 요청 — [무시한다]를 직접 누른 경우의 유대감-2, 022번과는 별개의 수치·경로).
+  var TALK_BUTTON_IDLE_AUTO_DISMISS_MS = 4000;
+  var talkIdleAutoDismissTimer = null;
   function openTalkIdlePrompt(){
     if(!el.talkIdlePopup) return;
     el.talkIdlePopupText.textContent = state.name + josaIGa(state.name) + " 할 말이 있는 것 같은데?";
     el.talkIdlePopup.hidden = false;
+    talkIdleAutoDismissTimer = window.setTimeout(function(){
+      talkIdleAutoDismissTimer = null;
+      closeTalkIdlePrompt();
+      bumpLifeBond(-1);
+      state.life.stress = clamp(state.life.stress + 1, 0, 100);
+      render();
+      saveState();
+    }, TALK_BUTTON_IDLE_AUTO_DISMISS_MS);
   }
+  // closeTalkIdlePrompt()는 [호응해준다]/[무시한다] 클릭(022번)과 위 자동 닫힘 타이머 양쪽에서 공통으로
+  // 호출되는 유일한 경로라, 여기서 타이머를 함께 정리해두면 사용자가 4초 안에 직접 응답했을 때 자동
+  // 닫힘 로직(과 그 페널티)이 뒤늦게 중복 발동하는 일이 없음.
   function closeTalkIdlePrompt(){
+    if(talkIdleAutoDismissTimer){ window.clearTimeout(talkIdleAutoDismissTimer); talkIdleAutoDismissTimer = null; }
     if(el.talkIdlePopup) el.talkIdlePopup.hidden = true;
   }
   // 69번: 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 유상 구매로 전환 — 상점이 [일반]/[소통버튼]
