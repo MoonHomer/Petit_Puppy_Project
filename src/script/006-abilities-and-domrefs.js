@@ -352,7 +352,9 @@
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
    // 74번(어질리티 연습장 신규): [외출하기]의 준비중 placeholder를 실제 미니게임으로 구현하며 추가된 DOM 참조.
-   "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityIntro","agilityStartBtn",
+   // 74-1번(사용자 수정 요청): 유저 칸의 O/X 표시를 화면 중앙의 큰 풍선(agilityFeedbackBalloon)으로 옮기며 추가.
+   "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityFeedbackBalloon","agilityFeedbackMark",
+   "agilityIntro","agilityStartBtn",
    "agilityGame","agilityPhaseBanner","agilityRoundLabel","agilityTimerFill",
    "agilityPawSystem","agilityPawUser","agilityPawDog","agilityDogName",
    "agilityResult","agilityResultText","agilityResultStats","agilityResultClose",

@@ -231,6 +231,9 @@
     <h2>어질리티 연습장</h2>
     <div class="agility-scene" id="agilityScene" aria-hidden="true">
       <canvas class="agility-scene-canvas" id="agilityCanvas" width="150" height="100"></canvas>
+      <!-- 74-1번(사용자 수정 요청): 유저 입력 칸 안에 있던 O/X 표시를 여기, 화면 중앙의 큰 입체감 풍선으로 옮김 —
+           평소엔 opacity:0/scale:0로 숨어있다가 클릭할 때마다 JS가 .pop 클래스를 다시 걸어 재생됨. -->
+      <div class="agility-feedback-balloon" id="agilityFeedbackBalloon" aria-hidden="true"><span id="agilityFeedbackMark"></span></div>
     </div>
     <div class="agility-intro" id="agilityIntro">
       <p class="attach-desc">순서를 기억해서 우리 아이와 함께 어질리티 코스에 도전해봐요! 하루에 한 번만 도전할 수 있어요.</p>

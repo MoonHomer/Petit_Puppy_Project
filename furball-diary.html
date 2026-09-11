@@ -1510,6 +1510,27 @@
     position:absolute; inset:0; display:block; width:100%; height:100%;
     image-rendering:pixelated; image-rendering:crisp-edges;
   }
+  /* 74-1번(사용자 수정 요청): 유저 입력 칸 안의 작은 O/X 텍스트 대신, 어질리티 코스 화면 한가운데에
+     크게 뜨는 입체감(엠보스) 풍선 — start-btn과 같은 계열의 아래쪽 그림자로 "눌린 버튼"이 아니라
+     "붕 떠 있는 풍선" 느낌을 내도록 은은한 확산 그림자(box-shadow 두 번째 값)를 함께 얹음. 평소엔
+     scale(0)·opacity:0로 완전히 숨어 있다가, 클릭마다 JS가 .pop 클래스를 껐다 켜 애니메이션을 재생함.*/
+  .agility-feedback-balloon{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(0);
+    width:30%; aspect-ratio:1/1; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:2rem; line-height:1; color:#fff;
+    opacity:0; pointer-events:none; z-index:5;
+  }
+  .agility-feedback-balloon.correct{ background:var(--moss); box-shadow:0 5px 0 0 var(--moss-deep), 0 10px 16px rgba(0,0,0,0.28); }
+  .agility-feedback-balloon.wrong{ background:var(--coral); box-shadow:0 5px 0 0 var(--coral-deep), 0 10px 16px rgba(0,0,0,0.28); }
+  .agility-feedback-balloon.pop{ animation:agilityBalloonPop 0.7s ease-out forwards; }
+  @keyframes agilityBalloonPop{
+    0%{ transform:translate(-50%,-50%) scale(0.3); opacity:0; }
+    18%{ transform:translate(-50%,-50%) scale(1.18); opacity:1; }
+    32%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+    72%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+    100%{ transform:translate(-50%,-50%) scale(0.85); opacity:0; }
+  }
   .agility-intro{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
   .agility-intro p{ margin:0; }
   .agility-cost-row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
@@ -1546,13 +1567,9 @@
     background:var(--card-2); border:2px solid var(--line);
     transition:background .12s ease, border-color .12s ease;
   }
-  .agility-pad-mark{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-weight:800; font-size:0.8rem; color:#fff; opacity:0; transition:opacity .1s ease;
-  }
-  .agility-pad.mark-correct .agility-pad-mark, .agility-pad.mark-wrong .agility-pad-mark{ opacity:1; }
-  .agility-pad.mark-correct{ border-color:var(--moss-deep); }
-  .agility-pad.mark-wrong{ border-color:var(--coral-deep); }
+  /* 74-1번(사용자 수정 요청): 유저 칸을 누르면 O/X 대신 시스템/반려견 칸과 똑같이 그 칸의 고유 색으로만
+     점등되도록 단순화 — 정답/오답 피드백은 전부 위 .agility-feedback-balloon(화면 중앙 큰 풍선)로 옮겨감.
+     이전에 쓰던 .agility-pad-mark(칸 안 O/X 텍스트)·.mark-correct/.mark-wrong(칸 테두리 색) 규칙은 제거. */
   /* 발바닥 모양 배치 — 참고 이미지(뒤꿈치 파랑 + 발가락 4개: 왼쪽=빨강·좌상단=주황·우상단=노랑·오른쪽=초록)를
      그대로 옮긴 5칸. 세 파우(시스템/나/반려견) 컨테이너가 이 클래스를 공유해 위치가 동일하게 맞춰짐. */
   .agility-pad-0{ width:46%; height:40%; left:27%; bottom:3%; }
@@ -2006,6 +2023,9 @@
     <h2>어질리티 연습장</h2>
     <div class="agility-scene" id="agilityScene" aria-hidden="true">
       <canvas class="agility-scene-canvas" id="agilityCanvas" width="150" height="100"></canvas>
+      <!-- 74-1번(사용자 수정 요청): 유저 입력 칸 안에 있던 O/X 표시를 여기, 화면 중앙의 큰 입체감 풍선으로 옮김 —
+           평소엔 opacity:0/scale:0로 숨어있다가 클릭할 때마다 JS가 .pop 클래스를 다시 걸어 재생됨. -->
+      <div class="agility-feedback-balloon" id="agilityFeedbackBalloon" aria-hidden="true"><span id="agilityFeedbackMark"></span></div>
     </div>
     <div class="agility-intro" id="agilityIntro">
       <p class="attach-desc">순서를 기억해서 우리 아이와 함께 어질리티 코스에 도전해봐요! 하루에 한 번만 도전할 수 있어요.</p>
@@ -4126,7 +4146,9 @@
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
    // 74번(어질리티 연습장 신규): [외출하기]의 준비중 placeholder를 실제 미니게임으로 구현하며 추가된 DOM 참조.
-   "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityIntro","agilityStartBtn",
+   // 74-1번(사용자 수정 요청): 유저 칸의 O/X 표시를 화면 중앙의 큰 풍선(agilityFeedbackBalloon)으로 옮기며 추가.
+   "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityFeedbackBalloon","agilityFeedbackMark",
+   "agilityIntro","agilityStartBtn",
    "agilityGame","agilityPhaseBanner","agilityRoundLabel","agilityTimerFill",
    "agilityPawSystem","agilityPawUser","agilityPawDog","agilityDogName",
    "agilityResult","agilityResultText","agilityResultStats","agilityResultClose",
@@ -8374,6 +8396,13 @@
   //  - 게임 시간 진행(advanceGameTime)은 "뼈다귀 소모 행동 1회"로 보아 결과 정산 시점에 정확히 1회만 호출하고,
   //    하루 종료 판정(maybeTriggerDayEnd)은 산책(closeWalkVeil)과 같은 원칙으로 결과창을 닫을 때 확인함.
   //  - 반려견의 모방 애니메이션은 시스템 제시와 같은 칸당 1초 리듬(점등 0.8초·소등 0.2초)을 그대로 재사용.
+  //
+  // ===== 74-1번(같은 세션, 사용자 수정 요청): 유저 입력 피드백 방식 변경 =====
+  //  게시 직후 사용자 피드백 — "유저 칸 안에 뜨던 O/X를 화면 중앙에 입체감 있는 풍선처럼 크게 보여주고,
+  //  누르는 칸 자체는 시스템/반려견 칸처럼 그 칸 고유 색으로만 점등되게 해달라." 반영: 유저 칸 클릭 시
+  //  더 이상 정답/오답 텍스트·테두리색을 넣지 않고(setAgilityPadLit로 시스템/반려견과 동일하게 처리),
+  //  정답/오답은 showAgilityFeedbackBalloon()이 #agilityScene 중앙에 큰 원형 풍선(엠보스 그림자 + 팝
+  //  애니메이션)으로 표시. 관련 없어진 .agility-pad-mark/.mark-correct/.mark-wrong은 정리해 제거.
 
   var AGILITY_BONE_COST = 20;
   var AGILITY_ENERGY_COST = 30;
@@ -8450,9 +8479,6 @@
     for(var i=0;i<AGILITY_PAD_COUNT;i++){
       var pad = document.createElement("div");
       pad.className = "agility-pad agility-pad-" + i;
-      var mark = document.createElement("span");
-      mark.className = "agility-pad-mark";
-      pad.appendChild(mark);
       container.appendChild(pad);
     }
   }
@@ -8470,21 +8496,37 @@
     var p = agilityPadEl(container, idx);
     if(p) p.classList.toggle("lit", !!on);
   }
-  function setAgilityPadMark(container, idx, correct){
-    var p = agilityPadEl(container, idx);
-    if(!p) return;
-    p.classList.remove("mark-correct", "mark-wrong");
-    p.classList.add(correct ? "mark-correct" : "mark-wrong");
-    var mark = p.querySelector(".agility-pad-mark");
-    if(mark) mark.textContent = correct ? "O" : "X";
-  }
   function clearAgilityPawMarks(container){
     if(!container) return;
     container.querySelectorAll(".agility-pad").forEach(function(p){
-      p.classList.remove("lit", "mark-correct", "mark-wrong");
-      var mark = p.querySelector(".agility-pad-mark");
-      if(mark) mark.textContent = "";
+      p.classList.remove("lit");
     });
+  }
+
+  // 74-1번(사용자 수정 요청): 유저 칸 안의 O/X 텍스트를 없애고, 대신 화면(#agilityScene) 한가운데에
+  // 크게 뜨는 입체감 풍선으로 정답/오답을 보여줌. 같은 결과가 연달아 나와도(예: X, X) 애니메이션이
+  // 처음부터 다시 재생되도록 클래스를 뗐다 붙이기 전에 강제 리플로우(offsetWidth)를 끼워넣음 —
+  // 개꿀팁 티커(layoutTipTicker)에서 이미 쓰던 것과 같은 패턴.
+  var agilityBalloonHideTimer = null;
+  function showAgilityFeedbackBalloon(correct){
+    var balloon = el.agilityFeedbackBalloon, mark = el.agilityFeedbackMark;
+    if(!balloon || !mark) return;
+    if(agilityBalloonHideTimer){ window.clearTimeout(agilityBalloonHideTimer); agilityBalloonHideTimer = null; }
+    mark.textContent = correct ? "O" : "X";
+    balloon.classList.remove("pop", "correct", "wrong");
+    if(reduceMotion()){
+      // 애니메이션 없이 잠깐 정적으로 보여주고 타이머로 직접 숨김(모션 축소 사용자 배려).
+      balloon.classList.add(correct ? "correct" : "wrong");
+      balloon.style.opacity = "1";
+      balloon.style.transform = "translate(-50%,-50%) scale(1)";
+      agilityBalloonHideTimer = window.setTimeout(function(){
+        balloon.style.opacity = "";
+        balloon.style.transform = "";
+      }, 550);
+      return;
+    }
+    void balloon.offsetWidth; // 강제 리플로우 — 연속으로 같은 결과가 나와도 애니메이션이 처음부터 재생되게 함
+    balloon.classList.add(correct ? "correct" : "wrong", "pop");
   }
 
   // ---- 게임 진행 단계 ----
@@ -8541,7 +8583,10 @@
           if(finished || clicked.length >= AGILITY_PAD_COUNT) return;
           clicked.push(idx);
           var correct = seq[clicked.length-1] === idx;
-          setAgilityPadMark(el.agilityPawUser, idx, correct);
+          // 74-1번(사용자 수정 요청): 누른 칸 자체는 시스템/반려견 칸과 동일하게 그 칸 고유 색으로만
+          // 점등하고(정답/오답 구분 없음), 정답/오답 표시는 화면 중앙의 큰 풍선으로 대신함.
+          setAgilityPadLit(el.agilityPawUser, idx, true);
+          showAgilityFeedbackBalloon(correct);
           if(clicked.length >= AGILITY_PAD_COUNT) finish();
         };
       });

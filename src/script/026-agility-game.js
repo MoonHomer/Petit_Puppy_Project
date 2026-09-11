@@ -12,6 +12,13 @@
   //  - 게임 시간 진행(advanceGameTime)은 "뼈다귀 소모 행동 1회"로 보아 결과 정산 시점에 정확히 1회만 호출하고,
   //    하루 종료 판정(maybeTriggerDayEnd)은 산책(closeWalkVeil)과 같은 원칙으로 결과창을 닫을 때 확인함.
   //  - 반려견의 모방 애니메이션은 시스템 제시와 같은 칸당 1초 리듬(점등 0.8초·소등 0.2초)을 그대로 재사용.
+  //
+  // ===== 74-1번(같은 세션, 사용자 수정 요청): 유저 입력 피드백 방식 변경 =====
+  //  게시 직후 사용자 피드백 — "유저 칸 안에 뜨던 O/X를 화면 중앙에 입체감 있는 풍선처럼 크게 보여주고,
+  //  누르는 칸 자체는 시스템/반려견 칸처럼 그 칸 고유 색으로만 점등되게 해달라." 반영: 유저 칸 클릭 시
+  //  더 이상 정답/오답 텍스트·테두리색을 넣지 않고(setAgilityPadLit로 시스템/반려견과 동일하게 처리),
+  //  정답/오답은 showAgilityFeedbackBalloon()이 #agilityScene 중앙에 큰 원형 풍선(엠보스 그림자 + 팝
+  //  애니메이션)으로 표시. 관련 없어진 .agility-pad-mark/.mark-correct/.mark-wrong은 정리해 제거.
 
   var AGILITY_BONE_COST = 20;
   var AGILITY_ENERGY_COST = 30;
@@ -88,9 +95,6 @@
     for(var i=0;i<AGILITY_PAD_COUNT;i++){
       var pad = document.createElement("div");
       pad.className = "agility-pad agility-pad-" + i;
-      var mark = document.createElement("span");
-      mark.className = "agility-pad-mark";
-      pad.appendChild(mark);
       container.appendChild(pad);
     }
   }
@@ -108,21 +112,37 @@
     var p = agilityPadEl(container, idx);
     if(p) p.classList.toggle("lit", !!on);
   }
-  function setAgilityPadMark(container, idx, correct){
-    var p = agilityPadEl(container, idx);
-    if(!p) return;
-    p.classList.remove("mark-correct", "mark-wrong");
-    p.classList.add(correct ? "mark-correct" : "mark-wrong");
-    var mark = p.querySelector(".agility-pad-mark");
-    if(mark) mark.textContent = correct ? "O" : "X";
-  }
   function clearAgilityPawMarks(container){
     if(!container) return;
     container.querySelectorAll(".agility-pad").forEach(function(p){
-      p.classList.remove("lit", "mark-correct", "mark-wrong");
-      var mark = p.querySelector(".agility-pad-mark");
-      if(mark) mark.textContent = "";
+      p.classList.remove("lit");
     });
+  }
+
+  // 74-1번(사용자 수정 요청): 유저 칸 안의 O/X 텍스트를 없애고, 대신 화면(#agilityScene) 한가운데에
+  // 크게 뜨는 입체감 풍선으로 정답/오답을 보여줌. 같은 결과가 연달아 나와도(예: X, X) 애니메이션이
+  // 처음부터 다시 재생되도록 클래스를 뗐다 붙이기 전에 강제 리플로우(offsetWidth)를 끼워넣음 —
+  // 개꿀팁 티커(layoutTipTicker)에서 이미 쓰던 것과 같은 패턴.
+  var agilityBalloonHideTimer = null;
+  function showAgilityFeedbackBalloon(correct){
+    var balloon = el.agilityFeedbackBalloon, mark = el.agilityFeedbackMark;
+    if(!balloon || !mark) return;
+    if(agilityBalloonHideTimer){ window.clearTimeout(agilityBalloonHideTimer); agilityBalloonHideTimer = null; }
+    mark.textContent = correct ? "O" : "X";
+    balloon.classList.remove("pop", "correct", "wrong");
+    if(reduceMotion()){
+      // 애니메이션 없이 잠깐 정적으로 보여주고 타이머로 직접 숨김(모션 축소 사용자 배려).
+      balloon.classList.add(correct ? "correct" : "wrong");
+      balloon.style.opacity = "1";
+      balloon.style.transform = "translate(-50%,-50%) scale(1)";
+      agilityBalloonHideTimer = window.setTimeout(function(){
+        balloon.style.opacity = "";
+        balloon.style.transform = "";
+      }, 550);
+      return;
+    }
+    void balloon.offsetWidth; // 강제 리플로우 — 연속으로 같은 결과가 나와도 애니메이션이 처음부터 재생되게 함
+    balloon.classList.add(correct ? "correct" : "wrong", "pop");
   }
 
   // ---- 게임 진행 단계 ----
@@ -179,7 +199,10 @@
           if(finished || clicked.length >= AGILITY_PAD_COUNT) return;
           clicked.push(idx);
           var correct = seq[clicked.length-1] === idx;
-          setAgilityPadMark(el.agilityPawUser, idx, correct);
+          // 74-1번(사용자 수정 요청): 누른 칸 자체는 시스템/반려견 칸과 동일하게 그 칸 고유 색으로만
+          // 점등하고(정답/오답 구분 없음), 정답/오답 표시는 화면 중앙의 큰 풍선으로 대신함.
+          setAgilityPadLit(el.agilityPawUser, idx, true);
+          showAgilityFeedbackBalloon(correct);
           if(clicked.length >= AGILITY_PAD_COUNT) finish();
         };
       });
