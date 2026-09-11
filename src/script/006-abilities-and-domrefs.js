@@ -351,6 +351,11 @@
    "descPopup","descPopupTitle","descPopupText","descPopupClose",
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
+   // 74번(어질리티 연습장 신규): [외출하기]의 준비중 placeholder를 실제 미니게임으로 구현하며 추가된 DOM 참조.
+   "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityIntro","agilityStartBtn",
+   "agilityGame","agilityPhaseBanner","agilityRoundLabel","agilityTimerFill",
+   "agilityPawSystem","agilityPawUser","agilityPawDog","agilityDogName",
+   "agilityResult","agilityResultText","agilityResultStats","agilityResultClose",
    "shopVeil","shopBackBtn","talkShopGrid","shopTabs","shopPageGeneral","shopPageTalk",
    "onboardVeil","nameInput","crateGrid","stepShelter","stepReveal",
    "stepSizeHint","sizeHintWord","sizeHintNext",

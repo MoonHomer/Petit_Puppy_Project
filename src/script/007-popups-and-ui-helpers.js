@@ -52,7 +52,12 @@
     el.placeholderTitle.textContent = title;
     openVeil(el.placeholderVeil);
   }
-  el.outingAgility.addEventListener("click", function(){ openOutingPlaceholder("어질리티 연습장"); });
+  // 74번: 어질리티 연습장은 더 이상 준비중 placeholder가 아니라 실제 순서기억 미니게임(026번 파일) —
+  // 나머지 3곳(애견카페·동물병원·펫미용실)은 그대로 준비중 화면으로 유지.
+  el.outingAgility.addEventListener("click", openAgilityVeil);
+  el.agilityBackBtn.addEventListener("click", closeAgilityVeil);
+  el.agilityStartBtn.addEventListener("click", startAgilityGame);
+  el.agilityResultClose.addEventListener("click", closeAgilityVeil);
   el.outingCafe.addEventListener("click", function(){ openOutingPlaceholder("애견카페"); });
   el.outingVet.addEventListener("click", function(){ openOutingPlaceholder("동물병원"); });
   el.outingGroom.addEventListener("click", function(){ openOutingPlaceholder("펫미용실"); });

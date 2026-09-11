@@ -70,7 +70,10 @@
       // 68번(기획문서 19장): "OO아 잠시 나갔다 올게" 활동의 D 이벤트(장소 5종) 하루 내 중복 방지용 —
       // 그날 이미 등장한 장소의 flavor 배열 인덱스를 담아두고, 하루 종료 시퀀스(playDayEndSequence)에서
       // 매번 비워 다음 날엔 5개 장소가 전부 다시 후보로 복원되게 함.
-      outing:{ usedPlaces:[] }
+      outing:{ usedPlaces:[] },
+      // 74번(어질리티 연습장 신규): 하루 1회 제한 플래그 — 하루 종료 시퀀스(playDayEndSequence)에서
+      // 매번 false로 리셋되어 다음 날 다시 도전할 수 있게 됨.
+      agility:{ playedToday:false }
     };
   }
 
@@ -191,6 +194,10 @@
   // 없는 상태로 새로 시작.
   if(!state.outing){
     state.outing = { usedPlaces:[] };
+  }
+  // 74번(어질리티 연습장 신규): 도입 전 저장분 마이그레이션 — 오늘 아직 도전 안 한 상태로 시작.
+  if(!state.agility){
+    state.agility = { playedToday:false };
   }
 
   function stageIndex(bond){

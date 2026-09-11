@@ -97,6 +97,8 @@
     // 68번(기획문서 19장): "OO아 잠시 나갔다 올게" D 이벤트의 하루 내 장소 중복 방지 기록도 여기서
     // 함께 리셋 — 다음 날엔 5개 장소가 전부 다시 후보로 복원됨.
     state.outing.usedPlaces = [];
+    // 74번(어질리티 연습장 신규): 하루 1회 제한도 여기서 함께 리셋 — 다음 날 다시 도전 가능.
+    if(state.agility) state.agility.playedToday = false;
     // 37번: 성장 단계 전환 확인 — 예전엔 startWalk()의 즉시 하루진행 블록에서 불렀지만, fosterDay가
     // 이제 이 시퀀스에서만 증가하므로 여기로 옮김.
     checkGrowthStageTransition();
