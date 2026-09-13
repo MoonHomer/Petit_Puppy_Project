@@ -73,7 +73,10 @@
       outing:{ usedPlaces:[] },
       // 74번(어질리티 연습장 신규): 하루 1회 제한 플래그 — 하루 종료 시퀀스(playDayEndSequence)에서
       // 매번 false로 리셋되어 다음 날 다시 도전할 수 있게 됨.
-      agility:{ playedToday:false }
+      agility:{ playedToday:false },
+      // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한 카운터 — 하루 종료 시퀀스에서 0으로 리셋.
+      // [진단받기]는 횟수 제한이 없어 별도 카운터가 필요 없음.
+      vet:{ treatToday:0 }
     };
   }
 
@@ -198,6 +201,10 @@
   // 74번(어질리티 연습장 신규): 도입 전 저장분 마이그레이션 — 오늘 아직 도전 안 한 상태로 시작.
   if(!state.agility){
     state.agility = { playedToday:false };
+  }
+  // 76번(동물병원 신규, 22장): 도입 전 저장분 마이그레이션 — 오늘 아직 치료 안 받은 상태로 시작.
+  if(!state.vet){
+    state.vet = { treatToday:0 };
   }
 
   function stageIndex(bond){

@@ -309,6 +309,35 @@
   </div>
 </div>
 
+<!-- 76번(동물병원, 기획문서 22장 신규): [외출하기]의 준비중 placeholder였던 항목을 실제 진단/치료
+     화면으로 구현. 상점(shopVeil)과 같은 "탭 버튼 + data 속성 + active 클래스" 패턴을 그대로 재사용
+     — [진단받기](뼈다귀 3개, 횟수 제한 없음)로 은폐된(???) 디버프의 정체를 밝히고, [치료하기](1회당
+     뼈다귀 5개, 하루 최대 3회)로 밝혀진 디버프의 치료를 시도함. -->
+<div class="veil" id="vetVeil">
+  <div class="onboard subscreen">
+    <h2>동물병원</h2>
+    <div class="shop-tabs" id="vetTabs">
+      <button type="button" class="shop-tab active" data-tab="diagnose">진단받기</button>
+      <button type="button" class="shop-tab" data-tab="treat">치료하기</button>
+    </div>
+    <div class="shop" id="vetPageDiagnose">
+      <div class="shop-head"><span class="shop-hint">뼈다귀 3개 · 횟수 제한 없음</span></div>
+      <div class="shop-grid">
+        <div class="shop-item">
+          <span class="name">🩺 진단받기</span>
+          <span class="desc" id="vetDiagnoseHint">숨어있는 증상이 있는지 살펴봐요.</span>
+          <button id="vetDiagnoseBtn">3 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="shop" id="vetPageTreat" hidden>
+      <div class="shop-head"><span class="shop-hint">1회당 뼈다귀 5개 · 하루 최대 3회</span></div>
+      <div class="shop-grid" id="vetTreatGrid"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="vetBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
 <div class="veil" id="placeholderVeil">
   <div class="onboard subscreen placeholder-card">
     <h2 id="placeholderTitle">준비중</h2>

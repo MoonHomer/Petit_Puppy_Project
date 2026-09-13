@@ -286,6 +286,98 @@
       desc:"게임 내 시간이 2시간 지날 때마다(뼈다귀 소모 행동 2회당) 뼈다귀 +1을 얻어요.",
       note:"선천적으로 시작할 때 1% 확률로 부여, 시고르자브(믹스견)로 시작하면 3%. 원안은 '1시간마다'였지만 64번(15장)에서 뼈다귀가 핵심 소모 자원으로 격상된 걸 감안해 '2시간마다'로 완화하기로 사용자가 직접 확정(2026-09-03). advanceGameTime()에서 absHour가 짝수가 될 때마다(=2시간 경과마다) 뼈다귀를 지급 — 하루 경계(22시→06시)에도 리셋되지 않는 absHour를 기준으로 삼아 날짜가 바뀌어도 주기가 끊기지 않음.",
       onboardRoll:function(){ return state.breed === "mix" ? 0.03 : 0.01; }
+    },
+    // 76번(기획문서 22장): 고유능력_입력템플릿_v7.xlsx 43~52행 신규 10종 — 스탯/만족도 디버프 +
+    // 동물병원(진단·치료) 시스템. 8개 기본능력 중 공격성 뺀 7개 + 견생만족도 3축(에너지·유대감·스트레스)에
+    // 1:1 매칭되고(matchPath), 낮은 확률로 발현되면 [기본정보]엔 이름 대신 "???"(mystery:true)로 표시되며
+    // (실제 효과는 매칭된 스탯/만족도의 "상승·회복"만 조용히 무효화 — applyDebuffGate() 참고, 아래에서
+    // finishWalk()/trainStat()/bumpLifeBond() 등 각 스탯 변화 지점에 공통 적용), 동물병원 [진단받기]를
+    // 받아야 이름이 공개되고(revealDebuffAbility()) 그 뒤 [치료하기]로 치료를 시도(cureRate, 실패하면
+    // 유지)할 수 있음. 공격성은 따로 매칭하지 않고, 이 10종 중 뭐라도 걸려있는 동안 advanceGameTime()에서
+    // 공통 부수효과로 게임 내 시간 2시간마다 +3씩 오름(엑셀 '기타' 란 공통 명시, 013번 파일 참고).
+    // 온보딩(이동장 뽑기) 시 삐짐 제외 9종 전부 각각 독립적으로 3%(onboardRoll) 확률로 "???" 은폐
+    // 상태로 시작 가능. 힌트/치료성공률/치료성공·실패 멘트는 전부 엑셀 원문 그대로 사용.
+    // 사용자 확인(2026-09-14): 능력명 "낯가림"은 기존 "낯가림쟁이"(strangerShy, 40번)와 혼동되어
+    // "무뚝뚝병"으로 개명 확정 — 코드 전체를 확인했으나 "낯가림"이라는 이름으로 먼저 작업 들어간 부분은
+    // 없어(strangerShy 하나만 원래도 별개로 존재), 아래 aloofness 항목이 "무뚝뚝병"이라는 이름으로
+    // 처음 구현되는 능력임(마이그레이션 불필요).
+    {
+      id:"muscleAche", name:"근육통", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.power", mystery:true, cureRate:0.80,
+      hint:"몸을 움직일 때마다 움찔하는 것 같아...",
+      desc:"근력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 몸을 움직일 때마다 여기저기가 뻐근한 모양이에요.",
+      note:"근력 상승 이벤트를 단기간에 많이 겪으면 낮은 확률로 발생(과사용 부상 컨셉) — trainStat()·finishWalk()에서 근력이 오르려 할 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정(구체 발현 확률은 엑셀에도 '미정'으로 명시, 실플레이 밸런싱 대상). 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 80%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"toeSprain", name:"발가락삠", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.agility", mystery:true, cureRate:0.80,
+      hint:"발을 자꾸 절며 걷는 것 같아...",
+      desc:"민첩성이 오르는 산책·훈련 효과가 조용히 무효화돼요. 발끝이 콕콕 쑤시는지 자꾸 발을 저는 모양이에요.",
+      note:"민첩성 관련 격한 활동(추격전 등)을 겪으면 낮은 확률로 발생 — trainStat()·finishWalk()에서 민첩성이 오르려 할 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 80%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"dazed", name:"멍함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.comprehension", mystery:true, cureRate:0.60,
+      hint:"오늘따라 멍하니 있는 시간이 많네...",
+      desc:"이해력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 불러도 잘 못 듣는지 멍하니 있는 시간이 늘어난 모양이에요.",
+      note:"최근 스트레스가 높은 상태(state.life.stress 70 이상, 개발팀 가정치)가 이어지면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 60%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"malaise", name:"몸살기운", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.execution", mystery:true, cureRate:0.65,
+      hint:"왠지 기운이 없어 보여...",
+      desc:"수행력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 왠지 기운이 없어서 시키는 것도 굼뜬 모양이에요.",
+      note:"발현 조건 '휴식 없이 활동을 몰아서 하면'에 대응하는 명확한 기존 상태값이 없어(오픈 이슈, 완료 보고에 명시) 온보딩 3% 확률 경로만 구현하고 실플레이 중 자동 발현 트리거는 이번 라운드에 넣지 않음. 동물병원 치료 성공률 65%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"aloofness", name:"무뚝뚝병", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.affinity", mystery:true, cureRate:0.55,
+      hint:"요즘따라 낯선 것들을 부쩍 피하는 것 같아...",
+      desc:"친화력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 요즘따라 살갑게 굴지 않고 새침하게 구는 모양이에요.",
+      note:"사회 이벤트에서 좋지 않은 경험이 이어지면 낮은 확률로 발생 — finishWalk()에서 친화력이 내려가는(나쁜 방향) 이벤트를 겪을 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"lowFever", name:"미열", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.health", mystery:true, cureRate:0.85,
+      hint:"코가 평소보다 따뜻한 것 같기도 하고...",
+      desc:"건강함이 오르는 산책·훈련 효과가 조용히 무효화돼요. 코가 평소보다 따뜻한 것 같기도 한 모양이에요.",
+      note:"청결도가 낮은 상태(state.life.clean 30 이하, 개발팀 가정치)가 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 85%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"sulking", name:"삐짐", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.loyalty",
+      desc:"충성도가 오르는 산책·훈련 효과가 조용히 무효화돼요. 요즘 나한테 말을 잘 안 걸어주는 것 같아 삐진 모양이에요.",
+      note:"다른 9종과 달리 예외 케이스 — 모호한 힌트·은폐 단계 없이 소통버튼(11장) 5회 연속 무응답 시 확정 발생하며 발현과 동시에 이름이 바로 공개됨([기본정보]에도 '???' 아님, mystery 플래그 없음). 동물병원 치료 대상이 아니며, 소통버튼에 3회 이상 연속으로 응답하면 자동 해제됨(020·022번 파일). 온보딩 이동장 뽑기로는 취득 불가(onboardRoll 없음, 사용자 명시).",
+    },
+    {
+      id:"lethargy", name:"무기력증", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.independence", mystery:true, cureRate:0.60,
+      hint:"아무리 쉬게 해도 기운을 못 차리는 것 같아...",
+      desc:"[기본돌봄-쉬게하기] 등 에너지가 오르는 효과가 조용히 무효화돼요. 아무리 쉬어도 기운이 안 나는 모양이에요.",
+      note:"에너지(state.life.independence)가 30 이하인 상태가 오래 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생(엑셀 명시 임계값). 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 60%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"moodiness", name:"새침함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.bond", mystery:true, cureRate:0.55,
+      hint:"요즘 왠지 저랑 거리를 두는 것 같아...",
+      desc:"스킨십·소통버튼 등 유대감이 오르는 효과가 조용히 무효화돼요. 요즘 왠지 거리를 두는 모양이에요.",
+      note:"최근 기본돌봄·소통버튼 등 유대감 관련 상호작용이 뜸했으면 낮은 확률로 발생 — 유대감(state.life.bond)이 30 이하인 상태를 그 근사 조건으로 판단(개발팀 가정치)해 20초 주기 틱(checkDebuffOnsets)에서 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"touchy", name:"예민함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.stress", mystery:true, cureRate:0.55,
+      hint:"사소한 일에도 자꾸 예민하게 반응하는 것 같아...",
+      desc:"[기본돌봄-놀아주기/간식주기] 등 스트레스가 내려가는 효과가 조용히 무효화돼요. 사소한 것에도 예민하게 반응하는 모양이에요.",
+      note:"스트레스가 높은 상태(state.life.stress 70 이상, 개발팀 가정치)가 오래 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
     }
   ];
   // 60번: 산책 장소 id → {pos, neg} 지역 전담 능력 id 매핑. WALK_PLACES/WALK_REGIONS의 id와 반드시 일치.
@@ -306,7 +398,12 @@
   function catalogGrant(id){
     var def = findAbilityDef(id);
     if(!def) return;
-    grantAbility(def.category, { id:"catalog:"+def.id, name:def.name, positive:def.positive, tone:def.tone, flavor:def.desc });
+    // 76번(22장): mystery(신규 디버프 9종, 삐짐 제외) 발현 시엔 이름 대신 "???"로, 설명 대신 모호한
+    // 힌트 문구로 등록 — 동물병원 [진단받기](revealDebuffAbility)를 받아야 실제 이름·설명이 드러남.
+    var record = def.mystery
+      ? { id:"catalog:"+def.id, name:"???", positive:def.positive, tone:def.tone, flavor:def.hint, hidden:true }
+      : { id:"catalog:"+def.id, name:def.name, positive:def.positive, tone:def.tone, flavor:def.desc };
+    grantAbility(def.category, record);
     if(def.onGrant) def.onGrant();
   }
   function catalogRevoke(id){
@@ -319,6 +416,81 @@
     var def = findAbilityDef(id);
     if(!def) return false;
     return (state.abilities[def.category]||[]).some(function(a){ return a.id === "catalog:"+id; });
+  }
+  // 76번(22장): matchPath가 있는 항목(디버프 10종)을 자동 수집 — 수기 중복 관리 방지.
+  var DEBUFF_IDS = [];
+  var DEBUFF_STAT_MAP = {};
+  ABILITY_CATALOG.forEach(function(def){
+    if(def.matchPath){ DEBUFF_IDS.push(def.id); DEBUFF_STAT_MAP[def.matchPath] = def.id; }
+  });
+  // 이 10종 중 뭐라도 걸려있으면(삐짐 포함) true — advanceGameTime()의 공격성 +3 부수효과 판정용(013번).
+  function anyActiveDebuff(){
+    return DEBUFF_IDS.some(function(id){ return isAbilityOwned(id); });
+  }
+  // path(예: "core.power")에 매칭된 디버프를 보유 중이고, 이번 변화(rawDelta)가 그 경로의 "좋은 방향"
+  // (STAT_GOOD_DIRECTION, 014번)이면 조용히 무효화(0)하고 안내 메시지를 함께 반환 — 그 외에는(디버프가
+  // 없거나, 변화 방향이 오히려 나쁜 쪽이면) 원래 값 그대로 통과.
+  function applyDebuffGate(path, rawDelta){
+    var debuffId = DEBUFF_STAT_MAP[path];
+    if(debuffId && isAbilityOwned(debuffId)){
+      var dir = STAT_GOOD_DIRECTION[path] || 1;
+      if((rawDelta * dir) > 0){
+        return { amount:0, msg: debuffDisplayName(debuffId) + " 때문에 효과가 없는 것 같아" };
+      }
+    }
+    return { amount:rawDelta, msg:null };
+  }
+  // 은폐 상태(hidden:true)면 "???"로, 공개됐으면(또는 애초에 은폐가 없는 삐짐이면) 실제 이름으로 표시.
+  function debuffDisplayName(id){
+    var def = findAbilityDef(id);
+    if(!def) return "???";
+    var list = state.abilities[def.category] || [];
+    for(var i=0;i<list.length;i++){
+      if(list[i].id === "catalog:"+id) return list[i].hidden ? "???" : def.name;
+    }
+    return def.name;
+  }
+  // 동물병원 [진단받기] — 은폐 상태(hidden)를 풀고 실제 이름·설명을 드러냄.
+  function revealDebuffAbility(id){
+    var def = findAbilityDef(id);
+    if(!def) return;
+    var list = state.abilities[def.category] || [];
+    for(var i=0;i<list.length;i++){
+      if(list[i].id === "catalog:"+id && list[i].hidden){
+        list[i].hidden = false;
+        list[i].name = def.name;
+        list[i].flavor = def.desc;
+      }
+    }
+  }
+  // 낮은 확률 발현 롤 — 이미 걸려있으면 시도하지 않음. 성공하면 실제로 부여(mystery면 catalogGrant가
+  // 알아서 은폐 상태로 등록)하고 힌트 문구를 반환함(호출부가 각자의 메시지 우선순위에 맞춰 조합해 씀 —
+  // 여기서 직접 showMessage를 부르면 호출부가 뒤이어 부르는 자기 showMessage에 곧바로 덮여 사라지는
+  // 깜빡임 버그가 있어서 일부러 그렇게 함).
+  function tryOnsetDebuff(id, chance){
+    if(isAbilityOwned(id)) return null;
+    if(Math.random() < (chance || 0)){
+      catalogGrant(id);
+      var def = findAbilityDef(id);
+      return def ? def.hint : null;
+    }
+    return null;
+  }
+  // 20초 주기 틱(024번)에서 판정하는 5종(멍함·미열·무기력증·새침함·예민함) — 각자 대응 상태값이 그
+  // 임계치를 넘겼을 때만 낮은 확률(가정치, 실플레이 밸런싱 대상)로 시도. 나머지 3종(근육통·발가락삠·
+  // 무뚝뚝병)은 걸음/훈련 이벤트 지점(finishWalk/trainStat)에서, 몸살기운은 이번 라운드 미구현(오픈 이슈),
+  // 삐짐은 소통버튼 무응답 스트릭(020번)에서 각각 별도로 판정.
+  var DEBUFF_TICK_ONSET_CHANCE = 0.02;
+  var DEBUFF_EVENT_ONSET_CHANCE = 0.05;
+  function checkDebuffOnsets(){
+    var L = state.life;
+    var hint = null;
+    if(L.stress >= 70){ hint = hint || tryOnsetDebuff("dazed", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.independence <= 30){ hint = hint || tryOnsetDebuff("lethargy", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.bond <= 30){ hint = hint || tryOnsetDebuff("moodiness", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.stress >= 70){ hint = hint || tryOnsetDebuff("touchy", DEBUFF_TICK_ONSET_CHANCE); }
+    return hint;
   }
   // 66번(2단계 리팩토링): 온보딩에서 "N% 확률로 딱 하나만, 후보 중 균등하게" 부여하는 결합 굴림
   // 패턴이 지역 전담 능력 14종(60번)과 미라클멍잉/올빼미독(65번) 두 곳에 거의 동일하게 중복돼 있어
@@ -351,6 +523,8 @@
    "descPopup","descPopupTitle","descPopupText","descPopupClose",
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
+   // 76번(동물병원 신규): [진단받기]/[치료하기] 2탭 구성 — 상점의 shopTabs/switchShopTab과 같은 패턴.
+   "vetVeil","vetBackBtn","vetTabs","vetPageDiagnose","vetPageTreat","vetDiagnoseBtn","vetDiagnoseHint","vetTreatGrid",
    // 74번(어질리티 연습장 신규): [외출하기]의 준비중 placeholder를 실제 미니게임으로 구현하며 추가된 DOM 참조.
    // 74-1번(사용자 수정 요청): 유저 칸의 O/X 표시를 화면 중앙의 큰 풍선(agilityFeedbackBalloon)으로 옮기며 추가.
    "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityFeedbackBalloon","agilityFeedbackMark",

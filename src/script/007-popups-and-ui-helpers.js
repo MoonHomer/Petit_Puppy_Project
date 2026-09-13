@@ -59,7 +59,9 @@
   el.agilityStartBtn.addEventListener("click", startAgilityGame);
   el.agilityResultClose.addEventListener("click", closeAgilityVeil);
   el.outingCafe.addEventListener("click", function(){ openOutingPlaceholder("애견카페"); });
-  el.outingVet.addEventListener("click", function(){ openOutingPlaceholder("동물병원"); });
+  // 76번(동물병원, 22장): 어질리티 연습장(74번)에 이어 두 번째로 준비중 placeholder에서 실제 화면으로
+  // 전환됨(진단·치료 로직은 027번 파일) — 나머지 2곳(애견카페·펫미용실)은 그대로 준비중 유지.
+  el.outingVet.addEventListener("click", openVetVeil);
   el.outingGroom.addEventListener("click", function(){ openOutingPlaceholder("펫미용실"); });
   // 47번: 대회/이벤트 — 다른 준비중 항목과 달리 별도 화면으로 이동하지 않고, 토스트 멘트만 띄우고 [외출하기] 화면에 머무름
   el.outingEvent.addEventListener("click", function(){ showMessage("현재 참여 가능한 이벤트나 대회가 없습니다."); });

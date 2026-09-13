@@ -27,16 +27,36 @@
     // 여기서도 그대로 재사용(옛 세션에는 이 필드가 없을 수 있어 기본값 1/1로 안전하게 대체).
     var energyWalkMult = session.walkEnergyMult || { gain:1, loss:1 };
     var eventTotals = {};
+    // 76번(22장): 부정 디버프 10종의 "상승효과 무효화" 게이트 — 이 경로에 매칭된 디버프를 이미 보유
+    // 중이고 이번 변화가 "좋은 방향"이면 조용히 0으로 무효화. 아직 없다면 특정 3종(근육통·발가락삠·
+    // 무뚝뚝병)에 한해 이 이벤트를 계기로 낮은 확률의 발현을 시도(성공해도 '이번' 이벤트는 그대로
+    // 적용되고, 다음 이벤트부터 무효화가 걸림) — 힌트는 종료 리포트로 넘어갈 때 안내 멘트로 씀.
+    var walkDebuffNullified = {};
+    var walkOnsetHint = null;
     (session.deltaLedger || []).forEach(function(d){
       var dir = STAT_GOOD_DIRECTION[d.path] || 1;
       var beneficial = (d.amount * dir) > 0;
+      var debuffId = DEBUFF_STAT_MAP[d.path];
+      if(debuffId && isAbilityOwned(debuffId) && beneficial){
+        walkDebuffNullified[debuffId] = true;
+      } else {
+        if(d.path === "core.power" && beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("muscleAche", DEBUFF_EVENT_ONSET_CHANCE); }
+        if(d.path === "core.agility" && beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("toeSprain", DEBUFF_EVENT_ONSET_CHANCE); }
+        if(d.path === "core.affinity" && !beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("aloofness", DEBUFF_EVENT_ONSET_CHANCE); }
+      }
       var applied = beneficial ? d.amount * pct * regionMult * energyWalkMult.gain : d.amount * energyWalkMult.loss;
+      if(debuffId && walkDebuffNullified[debuffId]) applied = 0;
       if(d.path.indexOf("core.") === 0){
         applied *= beneficial ? gwMult.gain : gwMult.loss;
         if(beneficial) applied *= depressionPenalty;
       }
       eventTotals[d.path] = (eventTotals[d.path] || 0) + applied;
     });
+    var walkDebuffMsg = null;
+    Object.keys(walkDebuffNullified).forEach(function(id){
+      if(!walkDebuffMsg) walkDebuffMsg = debuffDisplayName(id) + " 때문에 효과가 없는 것 같아";
+    });
+    if(!walkDebuffMsg) walkDebuffMsg = walkOnsetHint;
     // 34번: 종료 리포트 막대그래프에 쓸 "실제로 적용된" 변화량(클램프 반영 후) — 카드에서 보여준
     // 이벤트별 원본 수치와는 다를 수 있어(보상배율·클램프 때문에) 여기서 따로 기록해둠.
     var appliedTotals = {};
@@ -66,12 +86,17 @@
     var stressRelief = 15 * pct * effMult("happinessGain","happinessGainActive");
     var bondGain = 10 * pct * effMult("bondGain","bondWalk");
     var coinGain = Math.round(4 * pct);
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): 산책 완료 자체의 고정 보상(스트레스 완화·유대감 상승)도 각각 '예민함'·'새침함'
+    // 게이트를 거침 — 위 이벤트별 무효화 메시지가 아직 없을 때만 이쪽 메시지를 채택(우선순위 낮음).
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    if(!walkDebuffMsg) walkDebuffMsg = stressGate.msg;
     state.life.independence = clamp(state.life.independence - 20*energyMult, 0, 100);
     state.life.hunger = clamp(state.life.hunger - 10, 0, 100);
     state.life.clean = clamp(state.life.clean - 10, 0, 100);
     addGrowth(bondGain * coreGrowthGate());
-    bumpLifeBond(bondGain);
+    var bondMsg = bumpLifeBond(bondGain);
+    if(!walkDebuffMsg) walkDebuffMsg = bondMsg;
     state.coins += coinGain;
     // 35번: 반짝이는 발자국(희귀 드랍형)의 "누적 산책 횟수 마일스톤" 조건에 쓸 누적 완료 산책 횟수.
     // 도중에 "그만하고 돌아가기"로 끝내도 산책을 한 번 완료한 것으로 집계함.
@@ -97,7 +122,10 @@
       log: session.log.slice(),
       eventCount: session.eventCount || 0,
       statTotals: appliedTotals,
-      itemChips: (session.itemChips || []).slice()
+      itemChips: (session.itemChips || []).slice(),
+      // 76번(22장): 이번 산책에서 있었던 디버프 무효화/발현 힌트 안내(없으면 null) — closeWalkVeil()이
+      // 화면을 홈으로 되돌린 직후 showMessage로 띄워줌.
+      debuffMsg: walkDebuffMsg
     };
     state.walk.session = null;
     saveState();
@@ -109,9 +137,13 @@
     stopWalkAnim();
     clearWalkPose();
     el.walkVeil.classList.remove("show");
+    // 76번(22장): summary를 비우기 전에 debuffMsg를 먼저 꺼내둠 — 화면이 홈으로 돌아온 뒤에 띄워야
+    // 산책 결과 화면 위가 아니라 메인 화면에 토스트로 보임.
+    var pendingDebuffMsg = state.walk.summary && state.walk.summary.debuffMsg;
     state.walk.summary = null;
     saveState();
     render();
+    if(pendingDebuffMsg) showMessage(pendingDebuffMsg);
     // 64번(15장): 산책은 시작할 때 시간이 흐르지만(startWalk), "결과까지 전부 처리된 직후"에 하루
     // 종료를 판정해야 하므로(원안 명시) 세션이 완전히 끝나 홈 화면으로 돌아온 바로 지금 확인함.
     // 하루가 30일째(FOSTER_DAY_MAX)에 도달했다면 playDayEndSequence() 안에서 그대로 이어서
@@ -303,23 +335,28 @@
   function doTreat(){
     if(!hasBones(BONE_COST_CARE)){ showMessage(pick(FLAVOR.poor)); return; }
     state.life.hunger = clamp(state.life.hunger + 10, 0, 100);
-    state.life.stress = clamp(state.life.stress - 5, 0, 100);
-    state.life.bond = clamp(state.life.bond + 3, 0, 100);
+    // 76번(22장): '예민함' 게이트 — 스트레스 감소 무효화. bond 증가도 bumpLifeBond로 통일해 '새침함' 게이트 적용.
+    var stressGate = applyDebuffGate("life.stress", -5);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    var bondMsg = bumpLifeBond(3);
     // 64번(15장): 간식주기도 뼈다귀 1개 소모 + 게임 내 시간 1시간 진행.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.treat));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.treat));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
   function doRest(){
     if(!hasBones(BONE_COST_CARE)){ showMessage(pick(FLAVOR.poor)); return; }
-    state.life.stress = clamp(state.life.stress - 5, 0, 100);
-    state.life.independence = clamp(state.life.independence + 20, 0, 100);
+    // 76번(22장): '예민함'(스트레스 감소)·'무기력증'(에너지 회복) 게이트.
+    var stressGate = applyDebuffGate("life.stress", -5);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    var energyGate = applyDebuffGate("life.independence", 20);
+    state.life.independence = clamp(state.life.independence + energyGate.amount, 0, 100);
     // 64번(15장): 쉬게하기도 뼈다귀 1개 소모 + 게임 내 시간 1시간 진행.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.rest));
+    showMessage(stressGate.msg || energyGate.msg || pick(FLAVOR.rest));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
@@ -431,18 +468,22 @@
     state.coins -= 10;
     state.life.hunger = clamp(state.life.hunger + 40, 0, 100);
     var stressRelief = 5 * effMult("happinessGain","happinessGainCalm","happinessGainFeed");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
-    showMessage(pick(FLAVOR.snack));
+    // 76번(22장): '예민함' 게이트 — 스트레스 감소 무효화.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    showMessage(stressGate.msg || pick(FLAVOR.snack));
     saveRenderPulse();
   }
   function doBuyToy(){
     if(state.coins < 15){ showMessage(pick(FLAVOR.poor)); return; }
     state.coins -= 15;
     var stressRelief = 35 * effMult("happinessGain","happinessGainActive");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함'(스트레스 감소)·'새침함'(유대감 상승, bumpLifeBond 경유) 게이트.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     addGrowth(2 * effMult("bondGain"));
-    bumpLifeBond(2);
-    showMessage(pick(FLAVOR.toy));
+    var bondMsg = bumpLifeBond(2);
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.toy));
     saveRenderPulse();
   }
 

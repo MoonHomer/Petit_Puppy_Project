@@ -118,9 +118,14 @@
     // 세션에서 render()가 마당 캔버스를 도로 평소 장면으로 덮어쓸 뻔한 지점), 이번에 명시적으로 막음.
     if(state.ending) return;
     applyDecay();
+    // 76번(22장): 5종(멍함·미열·무기력증·새침함·예민함) 디버프의 상태값 기반 발현 판정 — 성공하면
+    // 힌트 문구를 토스트로 띄움(우선순위는 낮게, 방치 안내(away)보다는 뒤로 두지 않고 그냥 이 자리에서
+    // 바로 노출 — 다른 tick 안내와 겹칠 일이 거의 없는 20초 주기라 문제 없음).
+    var onsetHint = checkDebuffOnsets();
     render();
     saveState();
     tryFetchWeather();
+    if(onsetHint) showMessage(onsetHint);
   }, 20000);
 
   // 46번(45번 트리거 설계 수정): 소통버튼 유휴 트리거 — "화면 조작이 TALK_BUTTON_IDLE_MS(30초)

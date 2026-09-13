@@ -2101,6 +2101,35 @@
   </div>
 </div>
 
+<!-- 76번(동물병원, 기획문서 22장 신규): [외출하기]의 준비중 placeholder였던 항목을 실제 진단/치료
+     화면으로 구현. 상점(shopVeil)과 같은 "탭 버튼 + data 속성 + active 클래스" 패턴을 그대로 재사용
+     — [진단받기](뼈다귀 3개, 횟수 제한 없음)로 은폐된(???) 디버프의 정체를 밝히고, [치료하기](1회당
+     뼈다귀 5개, 하루 최대 3회)로 밝혀진 디버프의 치료를 시도함. -->
+<div class="veil" id="vetVeil">
+  <div class="onboard subscreen">
+    <h2>동물병원</h2>
+    <div class="shop-tabs" id="vetTabs">
+      <button type="button" class="shop-tab active" data-tab="diagnose">진단받기</button>
+      <button type="button" class="shop-tab" data-tab="treat">치료하기</button>
+    </div>
+    <div class="shop" id="vetPageDiagnose">
+      <div class="shop-head"><span class="shop-hint">뼈다귀 3개 · 횟수 제한 없음</span></div>
+      <div class="shop-grid">
+        <div class="shop-item">
+          <span class="name">🩺 진단받기</span>
+          <span class="desc" id="vetDiagnoseHint">숨어있는 증상이 있는지 살펴봐요.</span>
+          <button id="vetDiagnoseBtn">3 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="shop" id="vetPageTreat" hidden>
+      <div class="shop-head"><span class="shop-hint">1회당 뼈다귀 5개 · 하루 최대 3회</span></div>
+      <div class="shop-grid" id="vetTreatGrid"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="vetBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
 <div class="veil" id="placeholderVeil">
   <div class="onboard subscreen placeholder-card">
     <h2 id="placeholderTitle">준비중</h2>
@@ -4175,6 +4204,98 @@
       desc:"게임 내 시간이 2시간 지날 때마다(뼈다귀 소모 행동 2회당) 뼈다귀 +1을 얻어요.",
       note:"선천적으로 시작할 때 1% 확률로 부여, 시고르자브(믹스견)로 시작하면 3%. 원안은 '1시간마다'였지만 64번(15장)에서 뼈다귀가 핵심 소모 자원으로 격상된 걸 감안해 '2시간마다'로 완화하기로 사용자가 직접 확정(2026-09-03). advanceGameTime()에서 absHour가 짝수가 될 때마다(=2시간 경과마다) 뼈다귀를 지급 — 하루 경계(22시→06시)에도 리셋되지 않는 absHour를 기준으로 삼아 날짜가 바뀌어도 주기가 끊기지 않음.",
       onboardRoll:function(){ return state.breed === "mix" ? 0.03 : 0.01; }
+    },
+    // 76번(기획문서 22장): 고유능력_입력템플릿_v7.xlsx 43~52행 신규 10종 — 스탯/만족도 디버프 +
+    // 동물병원(진단·치료) 시스템. 8개 기본능력 중 공격성 뺀 7개 + 견생만족도 3축(에너지·유대감·스트레스)에
+    // 1:1 매칭되고(matchPath), 낮은 확률로 발현되면 [기본정보]엔 이름 대신 "???"(mystery:true)로 표시되며
+    // (실제 효과는 매칭된 스탯/만족도의 "상승·회복"만 조용히 무효화 — applyDebuffGate() 참고, 아래에서
+    // finishWalk()/trainStat()/bumpLifeBond() 등 각 스탯 변화 지점에 공통 적용), 동물병원 [진단받기]를
+    // 받아야 이름이 공개되고(revealDebuffAbility()) 그 뒤 [치료하기]로 치료를 시도(cureRate, 실패하면
+    // 유지)할 수 있음. 공격성은 따로 매칭하지 않고, 이 10종 중 뭐라도 걸려있는 동안 advanceGameTime()에서
+    // 공통 부수효과로 게임 내 시간 2시간마다 +3씩 오름(엑셀 '기타' 란 공통 명시, 013번 파일 참고).
+    // 온보딩(이동장 뽑기) 시 삐짐 제외 9종 전부 각각 독립적으로 3%(onboardRoll) 확률로 "???" 은폐
+    // 상태로 시작 가능. 힌트/치료성공률/치료성공·실패 멘트는 전부 엑셀 원문 그대로 사용.
+    // 사용자 확인(2026-09-14): 능력명 "낯가림"은 기존 "낯가림쟁이"(strangerShy, 40번)와 혼동되어
+    // "무뚝뚝병"으로 개명 확정 — 코드 전체를 확인했으나 "낯가림"이라는 이름으로 먼저 작업 들어간 부분은
+    // 없어(strangerShy 하나만 원래도 별개로 존재), 아래 aloofness 항목이 "무뚝뚝병"이라는 이름으로
+    // 처음 구현되는 능력임(마이그레이션 불필요).
+    {
+      id:"muscleAche", name:"근육통", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.power", mystery:true, cureRate:0.80,
+      hint:"몸을 움직일 때마다 움찔하는 것 같아...",
+      desc:"근력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 몸을 움직일 때마다 여기저기가 뻐근한 모양이에요.",
+      note:"근력 상승 이벤트를 단기간에 많이 겪으면 낮은 확률로 발생(과사용 부상 컨셉) — trainStat()·finishWalk()에서 근력이 오르려 할 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정(구체 발현 확률은 엑셀에도 '미정'으로 명시, 실플레이 밸런싱 대상). 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 80%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"toeSprain", name:"발가락삠", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.agility", mystery:true, cureRate:0.80,
+      hint:"발을 자꾸 절며 걷는 것 같아...",
+      desc:"민첩성이 오르는 산책·훈련 효과가 조용히 무효화돼요. 발끝이 콕콕 쑤시는지 자꾸 발을 저는 모양이에요.",
+      note:"민첩성 관련 격한 활동(추격전 등)을 겪으면 낮은 확률로 발생 — trainStat()·finishWalk()에서 민첩성이 오르려 할 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 80%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"dazed", name:"멍함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.comprehension", mystery:true, cureRate:0.60,
+      hint:"오늘따라 멍하니 있는 시간이 많네...",
+      desc:"이해력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 불러도 잘 못 듣는지 멍하니 있는 시간이 늘어난 모양이에요.",
+      note:"최근 스트레스가 높은 상태(state.life.stress 70 이상, 개발팀 가정치)가 이어지면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 60%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"malaise", name:"몸살기운", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.execution", mystery:true, cureRate:0.65,
+      hint:"왠지 기운이 없어 보여...",
+      desc:"수행력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 왠지 기운이 없어서 시키는 것도 굼뜬 모양이에요.",
+      note:"발현 조건 '휴식 없이 활동을 몰아서 하면'에 대응하는 명확한 기존 상태값이 없어(오픈 이슈, 완료 보고에 명시) 온보딩 3% 확률 경로만 구현하고 실플레이 중 자동 발현 트리거는 이번 라운드에 넣지 않음. 동물병원 치료 성공률 65%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"aloofness", name:"무뚝뚝병", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.affinity", mystery:true, cureRate:0.55,
+      hint:"요즘따라 낯선 것들을 부쩍 피하는 것 같아...",
+      desc:"친화력이 오르는 산책·훈련 효과가 조용히 무효화돼요. 요즘따라 살갑게 굴지 않고 새침하게 구는 모양이에요.",
+      note:"사회 이벤트에서 좋지 않은 경험이 이어지면 낮은 확률로 발생 — finishWalk()에서 친화력이 내려가는(나쁜 방향) 이벤트를 겪을 때 낮은 확률(DEBUFF_EVENT_ONSET_CHANCE)로 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"lowFever", name:"미열", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.health", mystery:true, cureRate:0.85,
+      hint:"코가 평소보다 따뜻한 것 같기도 하고...",
+      desc:"건강함이 오르는 산책·훈련 효과가 조용히 무효화돼요. 코가 평소보다 따뜻한 것 같기도 한 모양이에요.",
+      note:"청결도가 낮은 상태(state.life.clean 30 이하, 개발팀 가정치)가 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 85%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"sulking", name:"삐짐", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"core.loyalty",
+      desc:"충성도가 오르는 산책·훈련 효과가 조용히 무효화돼요. 요즘 나한테 말을 잘 안 걸어주는 것 같아 삐진 모양이에요.",
+      note:"다른 9종과 달리 예외 케이스 — 모호한 힌트·은폐 단계 없이 소통버튼(11장) 5회 연속 무응답 시 확정 발생하며 발현과 동시에 이름이 바로 공개됨([기본정보]에도 '???' 아님, mystery 플래그 없음). 동물병원 치료 대상이 아니며, 소통버튼에 3회 이상 연속으로 응답하면 자동 해제됨(020·022번 파일). 온보딩 이동장 뽑기로는 취득 불가(onboardRoll 없음, 사용자 명시).",
+    },
+    {
+      id:"lethargy", name:"무기력증", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.independence", mystery:true, cureRate:0.60,
+      hint:"아무리 쉬게 해도 기운을 못 차리는 것 같아...",
+      desc:"[기본돌봄-쉬게하기] 등 에너지가 오르는 효과가 조용히 무효화돼요. 아무리 쉬어도 기운이 안 나는 모양이에요.",
+      note:"에너지(state.life.independence)가 30 이하인 상태가 오래 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생(엑셀 명시 임계값). 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 60%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"moodiness", name:"새침함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.bond", mystery:true, cureRate:0.55,
+      hint:"요즘 왠지 저랑 거리를 두는 것 같아...",
+      desc:"스킨십·소통버튼 등 유대감이 오르는 효과가 조용히 무효화돼요. 요즘 왠지 거리를 두는 모양이에요.",
+      note:"최근 기본돌봄·소통버튼 등 유대감 관련 상호작용이 뜸했으면 낮은 확률로 발생 — 유대감(state.life.bond)이 30 이하인 상태를 그 근사 조건으로 판단(개발팀 가정치)해 20초 주기 틱(checkDebuffOnsets)에서 판정. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
+    },
+    {
+      id:"touchy", name:"예민함", category:"acquiredCommon", tone:"negative", positive:false,
+      matchPath:"life.stress", mystery:true, cureRate:0.55,
+      hint:"사소한 일에도 자꾸 예민하게 반응하는 것 같아...",
+      desc:"[기본돌봄-놀아주기/간식주기] 등 스트레스가 내려가는 효과가 조용히 무효화돼요. 사소한 것에도 예민하게 반응하는 모양이에요.",
+      note:"스트레스가 높은 상태(state.life.stress 70 이상, 개발팀 가정치)가 오래 지속되면 20초 주기 틱(checkDebuffOnsets)에서 낮은 확률로 발생. 온보딩 3% 확률로 '???' 은폐 상태 시작도 가능. 동물병원 치료 성공률 55%.",
+      onboardRoll:function(){ return 0.03; }
     }
   ];
   // 60번: 산책 장소 id → {pos, neg} 지역 전담 능력 id 매핑. WALK_PLACES/WALK_REGIONS의 id와 반드시 일치.
@@ -4195,7 +4316,12 @@
   function catalogGrant(id){
     var def = findAbilityDef(id);
     if(!def) return;
-    grantAbility(def.category, { id:"catalog:"+def.id, name:def.name, positive:def.positive, tone:def.tone, flavor:def.desc });
+    // 76번(22장): mystery(신규 디버프 9종, 삐짐 제외) 발현 시엔 이름 대신 "???"로, 설명 대신 모호한
+    // 힌트 문구로 등록 — 동물병원 [진단받기](revealDebuffAbility)를 받아야 실제 이름·설명이 드러남.
+    var record = def.mystery
+      ? { id:"catalog:"+def.id, name:"???", positive:def.positive, tone:def.tone, flavor:def.hint, hidden:true }
+      : { id:"catalog:"+def.id, name:def.name, positive:def.positive, tone:def.tone, flavor:def.desc };
+    grantAbility(def.category, record);
     if(def.onGrant) def.onGrant();
   }
   function catalogRevoke(id){
@@ -4208,6 +4334,81 @@
     var def = findAbilityDef(id);
     if(!def) return false;
     return (state.abilities[def.category]||[]).some(function(a){ return a.id === "catalog:"+id; });
+  }
+  // 76번(22장): matchPath가 있는 항목(디버프 10종)을 자동 수집 — 수기 중복 관리 방지.
+  var DEBUFF_IDS = [];
+  var DEBUFF_STAT_MAP = {};
+  ABILITY_CATALOG.forEach(function(def){
+    if(def.matchPath){ DEBUFF_IDS.push(def.id); DEBUFF_STAT_MAP[def.matchPath] = def.id; }
+  });
+  // 이 10종 중 뭐라도 걸려있으면(삐짐 포함) true — advanceGameTime()의 공격성 +3 부수효과 판정용(013번).
+  function anyActiveDebuff(){
+    return DEBUFF_IDS.some(function(id){ return isAbilityOwned(id); });
+  }
+  // path(예: "core.power")에 매칭된 디버프를 보유 중이고, 이번 변화(rawDelta)가 그 경로의 "좋은 방향"
+  // (STAT_GOOD_DIRECTION, 014번)이면 조용히 무효화(0)하고 안내 메시지를 함께 반환 — 그 외에는(디버프가
+  // 없거나, 변화 방향이 오히려 나쁜 쪽이면) 원래 값 그대로 통과.
+  function applyDebuffGate(path, rawDelta){
+    var debuffId = DEBUFF_STAT_MAP[path];
+    if(debuffId && isAbilityOwned(debuffId)){
+      var dir = STAT_GOOD_DIRECTION[path] || 1;
+      if((rawDelta * dir) > 0){
+        return { amount:0, msg: debuffDisplayName(debuffId) + " 때문에 효과가 없는 것 같아" };
+      }
+    }
+    return { amount:rawDelta, msg:null };
+  }
+  // 은폐 상태(hidden:true)면 "???"로, 공개됐으면(또는 애초에 은폐가 없는 삐짐이면) 실제 이름으로 표시.
+  function debuffDisplayName(id){
+    var def = findAbilityDef(id);
+    if(!def) return "???";
+    var list = state.abilities[def.category] || [];
+    for(var i=0;i<list.length;i++){
+      if(list[i].id === "catalog:"+id) return list[i].hidden ? "???" : def.name;
+    }
+    return def.name;
+  }
+  // 동물병원 [진단받기] — 은폐 상태(hidden)를 풀고 실제 이름·설명을 드러냄.
+  function revealDebuffAbility(id){
+    var def = findAbilityDef(id);
+    if(!def) return;
+    var list = state.abilities[def.category] || [];
+    for(var i=0;i<list.length;i++){
+      if(list[i].id === "catalog:"+id && list[i].hidden){
+        list[i].hidden = false;
+        list[i].name = def.name;
+        list[i].flavor = def.desc;
+      }
+    }
+  }
+  // 낮은 확률 발현 롤 — 이미 걸려있으면 시도하지 않음. 성공하면 실제로 부여(mystery면 catalogGrant가
+  // 알아서 은폐 상태로 등록)하고 힌트 문구를 반환함(호출부가 각자의 메시지 우선순위에 맞춰 조합해 씀 —
+  // 여기서 직접 showMessage를 부르면 호출부가 뒤이어 부르는 자기 showMessage에 곧바로 덮여 사라지는
+  // 깜빡임 버그가 있어서 일부러 그렇게 함).
+  function tryOnsetDebuff(id, chance){
+    if(isAbilityOwned(id)) return null;
+    if(Math.random() < (chance || 0)){
+      catalogGrant(id);
+      var def = findAbilityDef(id);
+      return def ? def.hint : null;
+    }
+    return null;
+  }
+  // 20초 주기 틱(024번)에서 판정하는 5종(멍함·미열·무기력증·새침함·예민함) — 각자 대응 상태값이 그
+  // 임계치를 넘겼을 때만 낮은 확률(가정치, 실플레이 밸런싱 대상)로 시도. 나머지 3종(근육통·발가락삠·
+  // 무뚝뚝병)은 걸음/훈련 이벤트 지점(finishWalk/trainStat)에서, 몸살기운은 이번 라운드 미구현(오픈 이슈),
+  // 삐짐은 소통버튼 무응답 스트릭(020번)에서 각각 별도로 판정.
+  var DEBUFF_TICK_ONSET_CHANCE = 0.02;
+  var DEBUFF_EVENT_ONSET_CHANCE = 0.05;
+  function checkDebuffOnsets(){
+    var L = state.life;
+    var hint = null;
+    if(L.stress >= 70){ hint = hint || tryOnsetDebuff("dazed", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.independence <= 30){ hint = hint || tryOnsetDebuff("lethargy", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.bond <= 30){ hint = hint || tryOnsetDebuff("moodiness", DEBUFF_TICK_ONSET_CHANCE); }
+    if(L.stress >= 70){ hint = hint || tryOnsetDebuff("touchy", DEBUFF_TICK_ONSET_CHANCE); }
+    return hint;
   }
   // 66번(2단계 리팩토링): 온보딩에서 "N% 확률로 딱 하나만, 후보 중 균등하게" 부여하는 결합 굴림
   // 패턴이 지역 전담 능력 14종(60번)과 미라클멍잉/올빼미독(65번) 두 곳에 거의 동일하게 중복돼 있어
@@ -4240,6 +4441,8 @@
    "descPopup","descPopupTitle","descPopupText","descPopupClose",
    "careVeil","careBackBtn","placeholderVeil","placeholderTitle","placeholderBackBtn",
    "outingVeil","outingBackBtn","outingShop","outingAgility","outingCafe","outingVet","outingGroom","outingEvent",
+   // 76번(동물병원 신규): [진단받기]/[치료하기] 2탭 구성 — 상점의 shopTabs/switchShopTab과 같은 패턴.
+   "vetVeil","vetBackBtn","vetTabs","vetPageDiagnose","vetPageTreat","vetDiagnoseBtn","vetDiagnoseHint","vetTreatGrid",
    // 74번(어질리티 연습장 신규): [외출하기]의 준비중 placeholder를 실제 미니게임으로 구현하며 추가된 DOM 참조.
    // 74-1번(사용자 수정 요청): 유저 칸의 O/X 표시를 화면 중앙의 큰 풍선(agilityFeedbackBalloon)으로 옮기며 추가.
    "agilityVeil","agilityBackBtn","agilityScene","agilityCanvas","agilityFeedbackBalloon","agilityFeedbackMark",
@@ -4327,7 +4530,9 @@
   el.agilityStartBtn.addEventListener("click", startAgilityGame);
   el.agilityResultClose.addEventListener("click", closeAgilityVeil);
   el.outingCafe.addEventListener("click", function(){ openOutingPlaceholder("애견카페"); });
-  el.outingVet.addEventListener("click", function(){ openOutingPlaceholder("동물병원"); });
+  // 76번(동물병원, 22장): 어질리티 연습장(74번)에 이어 두 번째로 준비중 placeholder에서 실제 화면으로
+  // 전환됨(진단·치료 로직은 027번 파일) — 나머지 2곳(애견카페·펫미용실)은 그대로 준비중 유지.
+  el.outingVet.addEventListener("click", openVetVeil);
   el.outingGroom.addEventListener("click", function(){ openOutingPlaceholder("펫미용실"); });
   // 47번: 대회/이벤트 — 다른 준비중 항목과 달리 별도 화면으로 이동하지 않고, 토스트 멘트만 띄우고 [외출하기] 화면에 머무름
   el.outingEvent.addEventListener("click", function(){ showMessage("현재 참여 가능한 이벤트나 대회가 없습니다."); });
@@ -4673,7 +4878,10 @@
       outing:{ usedPlaces:[] },
       // 74번(어질리티 연습장 신규): 하루 1회 제한 플래그 — 하루 종료 시퀀스(playDayEndSequence)에서
       // 매번 false로 리셋되어 다음 날 다시 도전할 수 있게 됨.
-      agility:{ playedToday:false }
+      agility:{ playedToday:false },
+      // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한 카운터 — 하루 종료 시퀀스에서 0으로 리셋.
+      // [진단받기]는 횟수 제한이 없어 별도 카운터가 필요 없음.
+      vet:{ treatToday:0 }
     };
   }
 
@@ -4798,6 +5006,10 @@
   // 74번(어질리티 연습장 신규): 도입 전 저장분 마이그레이션 — 오늘 아직 도전 안 한 상태로 시작.
   if(!state.agility){
     state.agility = { playedToday:false };
+  }
+  // 76번(동물병원 신규, 22장): 도입 전 저장분 마이그레이션 — 오늘 아직 치료 안 받은 상태로 시작.
+  if(!state.vet){
+    state.vet = { treatToday:0 };
   }
 
   function stageIndex(bond){
@@ -5003,7 +5215,14 @@
   // 별개의 개념 — growthPoints는 한 번 오르면 내려가지 않는 "지금까지 함께한 시간의 총량".
   function addGrowth(n){ state.growthPoints += n; }
   // 하루하루의 관계 만족도(life.bond, 0~100)는 케어할 때마다 조금씩 오르고 방치되면 서서히 식음.
-  function bumpLifeBond(n){ state.life.bond = clamp(state.life.bond + n, 0, 100); }
+  // 76번(22장): '새침함' 디버프 보유 시 유대감이 "오르는" 변화만 조용히 무효화됨 — applyDebuffGate로
+  // 게이트를 거친 뒤 반영. 반환값(무효화 안내 멘트, 없으면 null)은 새로 추가된 것이라 호출부가 원하면
+  // 자기 showMessage에 조합해 쓸 수 있고, 기존 호출부들은 반환값을 그냥 무시해도 동작에 영향 없음.
+  function bumpLifeBond(n){
+    var gate = applyDebuffGate("life.bond", n);
+    state.life.bond = clamp(state.life.bond + gate.amount, 0, 100);
+    return gate.msg;
+  }
 
   // ===== 64번(기획문서 15장): 게임 진행 핵심 소모품 체계 — 뼈다귀·게임 내 시간 =====
   // 뼈다귀(state.coins, 🦴)는 기존 상점 화폐 기능을 그대로 유지하면서, 이제 [기본돌봄]·[산책]처럼
@@ -5049,6 +5268,11 @@
     if(state.time.absHour % 2 === 0 && isAbilityOwned("blessedPup")){
       state.coins += 1;
     }
+    // 76번(22장): 부정 디버프 10종 중 뭐라도 걸려있는 동안 공통 부수효과 — 게임 내 시간 2시간마다
+    // 공격성 +3(엑셀 '기타' 란 공통 명시, 삐짐 포함). blessedPup과 같은 absHour 짝수 판정을 재사용.
+    if(state.time.absHour % 2 === 0 && anyActiveDebuff()){
+      state.core.aggression = clamp(state.core.aggression + 3, 0, 100);
+    }
   }
   function gameClockLabel(){
     var h = state.time.hour;
@@ -5075,15 +5299,17 @@
     var hungerGain = isAbilityOwned("hoarder") ? 28 : 25;
     state.life.hunger = clamp(state.life.hunger + hungerGain, 0, 100);
     var stressRelief = 3 * effMult("happinessGain","happinessGainCalm","happinessGainFeed");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함' 디버프 보유 시 스트레스 감소 효과가 조용히 무효화됨.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     addGrowth(2 * effMult("bondGain"));
-    bumpLifeBond(2);
+    var bondMsg = bumpLifeBond(2);
     // 64번(15장): 밥주기도 [기본돌봄] 5개 활동 중 하나로 뼈다귀 1개를 "소모"함 — 기존에 여기서
     // 주던 +1 코인 보상은 제거(사용자 확인: "구분 없이 전부 1개 소모"라는 원안과 상충해 보상 없이
     // 순수 소모만 하도록 확정, 놀아주기도 동일).
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.feed));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.feed));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
@@ -5096,15 +5322,17 @@
     var energyMult = effMult("energyDrain");
     var stressRelief = 20 * effMult("happinessGain","happinessGainActive");
     var independenceCost = 15 * energyMult;
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함' 디버프 보유 시 스트레스 감소 효과가 조용히 무효화됨.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     state.life.independence = clamp(state.life.independence - independenceCost, 0, 100);
     state.life.hunger = clamp(state.life.hunger - 5, 0, 100);
     addGrowth(3 * effMult("bondGain"));
-    bumpLifeBond(3);
+    var bondMsg = bumpLifeBond(3);
     // 64번(15장): 놀아주기의 기존 +2 코인 보상도 밥주기와 동일한 이유로 제거하고 뼈다귀 1개 소모로 전환.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.play[tierFor(energyMult)]));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.play[tierFor(energyMult)]));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
@@ -6734,16 +6962,36 @@
     // 여기서도 그대로 재사용(옛 세션에는 이 필드가 없을 수 있어 기본값 1/1로 안전하게 대체).
     var energyWalkMult = session.walkEnergyMult || { gain:1, loss:1 };
     var eventTotals = {};
+    // 76번(22장): 부정 디버프 10종의 "상승효과 무효화" 게이트 — 이 경로에 매칭된 디버프를 이미 보유
+    // 중이고 이번 변화가 "좋은 방향"이면 조용히 0으로 무효화. 아직 없다면 특정 3종(근육통·발가락삠·
+    // 무뚝뚝병)에 한해 이 이벤트를 계기로 낮은 확률의 발현을 시도(성공해도 '이번' 이벤트는 그대로
+    // 적용되고, 다음 이벤트부터 무효화가 걸림) — 힌트는 종료 리포트로 넘어갈 때 안내 멘트로 씀.
+    var walkDebuffNullified = {};
+    var walkOnsetHint = null;
     (session.deltaLedger || []).forEach(function(d){
       var dir = STAT_GOOD_DIRECTION[d.path] || 1;
       var beneficial = (d.amount * dir) > 0;
+      var debuffId = DEBUFF_STAT_MAP[d.path];
+      if(debuffId && isAbilityOwned(debuffId) && beneficial){
+        walkDebuffNullified[debuffId] = true;
+      } else {
+        if(d.path === "core.power" && beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("muscleAche", DEBUFF_EVENT_ONSET_CHANCE); }
+        if(d.path === "core.agility" && beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("toeSprain", DEBUFF_EVENT_ONSET_CHANCE); }
+        if(d.path === "core.affinity" && !beneficial){ walkOnsetHint = walkOnsetHint || tryOnsetDebuff("aloofness", DEBUFF_EVENT_ONSET_CHANCE); }
+      }
       var applied = beneficial ? d.amount * pct * regionMult * energyWalkMult.gain : d.amount * energyWalkMult.loss;
+      if(debuffId && walkDebuffNullified[debuffId]) applied = 0;
       if(d.path.indexOf("core.") === 0){
         applied *= beneficial ? gwMult.gain : gwMult.loss;
         if(beneficial) applied *= depressionPenalty;
       }
       eventTotals[d.path] = (eventTotals[d.path] || 0) + applied;
     });
+    var walkDebuffMsg = null;
+    Object.keys(walkDebuffNullified).forEach(function(id){
+      if(!walkDebuffMsg) walkDebuffMsg = debuffDisplayName(id) + " 때문에 효과가 없는 것 같아";
+    });
+    if(!walkDebuffMsg) walkDebuffMsg = walkOnsetHint;
     // 34번: 종료 리포트 막대그래프에 쓸 "실제로 적용된" 변화량(클램프 반영 후) — 카드에서 보여준
     // 이벤트별 원본 수치와는 다를 수 있어(보상배율·클램프 때문에) 여기서 따로 기록해둠.
     var appliedTotals = {};
@@ -6773,12 +7021,17 @@
     var stressRelief = 15 * pct * effMult("happinessGain","happinessGainActive");
     var bondGain = 10 * pct * effMult("bondGain","bondWalk");
     var coinGain = Math.round(4 * pct);
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): 산책 완료 자체의 고정 보상(스트레스 완화·유대감 상승)도 각각 '예민함'·'새침함'
+    // 게이트를 거침 — 위 이벤트별 무효화 메시지가 아직 없을 때만 이쪽 메시지를 채택(우선순위 낮음).
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    if(!walkDebuffMsg) walkDebuffMsg = stressGate.msg;
     state.life.independence = clamp(state.life.independence - 20*energyMult, 0, 100);
     state.life.hunger = clamp(state.life.hunger - 10, 0, 100);
     state.life.clean = clamp(state.life.clean - 10, 0, 100);
     addGrowth(bondGain * coreGrowthGate());
-    bumpLifeBond(bondGain);
+    var bondMsg = bumpLifeBond(bondGain);
+    if(!walkDebuffMsg) walkDebuffMsg = bondMsg;
     state.coins += coinGain;
     // 35번: 반짝이는 발자국(희귀 드랍형)의 "누적 산책 횟수 마일스톤" 조건에 쓸 누적 완료 산책 횟수.
     // 도중에 "그만하고 돌아가기"로 끝내도 산책을 한 번 완료한 것으로 집계함.
@@ -6804,7 +7057,10 @@
       log: session.log.slice(),
       eventCount: session.eventCount || 0,
       statTotals: appliedTotals,
-      itemChips: (session.itemChips || []).slice()
+      itemChips: (session.itemChips || []).slice(),
+      // 76번(22장): 이번 산책에서 있었던 디버프 무효화/발현 힌트 안내(없으면 null) — closeWalkVeil()이
+      // 화면을 홈으로 되돌린 직후 showMessage로 띄워줌.
+      debuffMsg: walkDebuffMsg
     };
     state.walk.session = null;
     saveState();
@@ -6816,9 +7072,13 @@
     stopWalkAnim();
     clearWalkPose();
     el.walkVeil.classList.remove("show");
+    // 76번(22장): summary를 비우기 전에 debuffMsg를 먼저 꺼내둠 — 화면이 홈으로 돌아온 뒤에 띄워야
+    // 산책 결과 화면 위가 아니라 메인 화면에 토스트로 보임.
+    var pendingDebuffMsg = state.walk.summary && state.walk.summary.debuffMsg;
     state.walk.summary = null;
     saveState();
     render();
+    if(pendingDebuffMsg) showMessage(pendingDebuffMsg);
     // 64번(15장): 산책은 시작할 때 시간이 흐르지만(startWalk), "결과까지 전부 처리된 직후"에 하루
     // 종료를 판정해야 하므로(원안 명시) 세션이 완전히 끝나 홈 화면으로 돌아온 바로 지금 확인함.
     // 하루가 30일째(FOSTER_DAY_MAX)에 도달했다면 playDayEndSequence() 안에서 그대로 이어서
@@ -7010,23 +7270,28 @@
   function doTreat(){
     if(!hasBones(BONE_COST_CARE)){ showMessage(pick(FLAVOR.poor)); return; }
     state.life.hunger = clamp(state.life.hunger + 10, 0, 100);
-    state.life.stress = clamp(state.life.stress - 5, 0, 100);
-    state.life.bond = clamp(state.life.bond + 3, 0, 100);
+    // 76번(22장): '예민함' 게이트 — 스트레스 감소 무효화. bond 증가도 bumpLifeBond로 통일해 '새침함' 게이트 적용.
+    var stressGate = applyDebuffGate("life.stress", -5);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    var bondMsg = bumpLifeBond(3);
     // 64번(15장): 간식주기도 뼈다귀 1개 소모 + 게임 내 시간 1시간 진행.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.treat));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.treat));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
   function doRest(){
     if(!hasBones(BONE_COST_CARE)){ showMessage(pick(FLAVOR.poor)); return; }
-    state.life.stress = clamp(state.life.stress - 5, 0, 100);
-    state.life.independence = clamp(state.life.independence + 20, 0, 100);
+    // 76번(22장): '예민함'(스트레스 감소)·'무기력증'(에너지 회복) 게이트.
+    var stressGate = applyDebuffGate("life.stress", -5);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    var energyGate = applyDebuffGate("life.independence", 20);
+    state.life.independence = clamp(state.life.independence + energyGate.amount, 0, 100);
     // 64번(15장): 쉬게하기도 뼈다귀 1개 소모 + 게임 내 시간 1시간 진행.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.rest));
+    showMessage(stressGate.msg || energyGate.msg || pick(FLAVOR.rest));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
@@ -7138,18 +7403,22 @@
     state.coins -= 10;
     state.life.hunger = clamp(state.life.hunger + 40, 0, 100);
     var stressRelief = 5 * effMult("happinessGain","happinessGainCalm","happinessGainFeed");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
-    showMessage(pick(FLAVOR.snack));
+    // 76번(22장): '예민함' 게이트 — 스트레스 감소 무효화.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
+    showMessage(stressGate.msg || pick(FLAVOR.snack));
     saveRenderPulse();
   }
   function doBuyToy(){
     if(state.coins < 15){ showMessage(pick(FLAVOR.poor)); return; }
     state.coins -= 15;
     var stressRelief = 35 * effMult("happinessGain","happinessGainActive");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함'(스트레스 감소)·'새침함'(유대감 상승, bumpLifeBond 경유) 게이트.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     addGrowth(2 * effMult("bondGain"));
-    bumpLifeBond(2);
-    showMessage(pick(FLAVOR.toy));
+    var bondMsg = bumpLifeBond(2);
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.toy));
     saveRenderPulse();
   }
 
@@ -7375,6 +7644,14 @@
       closeTalkIdlePrompt();
       bumpLifeBond(-1);
       state.life.stress = clamp(state.life.stress + 1, 0, 100);
+      // 76번(22장): '삐짐'의 취득 조건 — 소통버튼 유휴 확인 팝업에 5회 "연속" 무응답(자동 닫힘) 시
+      // 확정 발생. [호응해준다]/[무시한다] 중 하나를 눌러 응답하면(022번) 이 스트릭이 즉시 리셋됨.
+      state.abilityCounters.talkIdleNoResponseStreak = (state.abilityCounters.talkIdleNoResponseStreak || 0) + 1;
+      state.abilityCounters.talkIdleResponseStreak = 0;
+      if(state.abilityCounters.talkIdleNoResponseStreak >= 5 && !isAbilityOwned("sulking")){
+        catalogGrant("sulking");
+        showMessage(state.name + josaIGa(state.name) + " 삐졌어요...");
+      }
       render();
       saveState();
     }, TALK_BUTTON_IDLE_AUTO_DISMISS_MS);
@@ -7552,6 +7829,8 @@
     state.outing.usedPlaces = [];
     // 74번(어질리티 연습장 신규): 하루 1회 제한도 여기서 함께 리셋 — 다음 날 다시 도전 가능.
     if(state.agility) state.agility.playedToday = false;
+    // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한도 여기서 함께 리셋.
+    if(state.vet) state.vet.treatToday = 0;
     // 37번: 성장 단계 전환 확인 — 예전엔 startWalk()의 즉시 하루진행 블록에서 불렀지만, fosterDay가
     // 이제 이 시퀀스에서만 증가하므로 여기로 옮김.
     checkGrowthStageTransition();
@@ -7677,11 +7956,19 @@
     // 40번: '우울증' 소지 시 훈련으로 오르는 기본능력도 10% 감소.
     var gain = (forced ? 3 : 6) * coreGrowthGate() * (isAbilityOwned("depression") ? 0.9 : 1);
     state.life.independence = clamp(state.life.independence - cost, 0, 100);
-    state.core[key] = clamp(state.core[key] + gain, 0, 100);
+    // 76번(22장): 해당 기본능력에 매칭된 디버프가 있으면 상승 효과를 조용히 무효화 — 아직 없다면
+    // 근력·민첩성 훈련에 한해 이 훈련을 계기로 '근육통'·'발가락삠'의 낮은 확률 발현을 시도.
+    var gate = applyDebuffGate("core." + key, gain);
+    state.core[key] = clamp(state.core[key] + gate.amount, 0, 100);
+    var onsetHint = null;
+    if(!gate.msg){
+      if(key === "power"){ onsetHint = tryOnsetDebuff("muscleAche", DEBUFF_EVENT_ONSET_CHANCE); }
+      else if(key === "agility"){ onsetHint = tryOnsetDebuff("toeSprain", DEBUFF_EVENT_ONSET_CHANCE); }
+    }
     if(forced){
       state.life.stress = clamp(state.life.stress + 10, 0, 100);
     }
-    showMessage(pick(TRAIN_FLAVOR[key][forced ? "forced" : "normal"]));
+    showMessage(gate.msg || onsetHint || pick(TRAIN_FLAVOR[key][forced ? "forced" : "normal"]));
     saveRenderPulse();
   }
   function handleTrainClick(key){
@@ -7721,11 +8008,24 @@
   // [무시한다] 유대감-2. playTalkPopup()/closeTalkIdlePrompt()는 각각 talkVeil·talkIdlePopup 쪽
   // UI만 갱신하고 메인화면 견생만족도 패널은 건드리지 않으므로, 두 핸들러 모두 render()를 직접 호출해
   // 유대감 수치가 바로 반영되도록 함.
+  // 76번(22장): [호응해준다]/[무시한다] 둘 다 소통버튼에 "응답"한 것으로 간주 — '삐짐'의 무응답
+  // 연속 스트릭(020번의 자동 닫힘 타이머 전용)을 리셋하고, 3회 이상 연속 응답이면 삐짐을 자동 해제함.
+  function registerTalkIdleResponse(){
+    state.abilityCounters.talkIdleResponseStreak = (state.abilityCounters.talkIdleResponseStreak || 0) + 1;
+    state.abilityCounters.talkIdleNoResponseStreak = 0;
+    if(state.abilityCounters.talkIdleResponseStreak >= 3 && isAbilityOwned("sulking")){
+      catalogRevoke("sulking");
+      window.setTimeout(function(){
+        showMessage(state.name + josaIGa(state.name) + " 다시 기분이 풀린 것 같아요.");
+      }, 1600);
+    }
+  }
   el.talkIdleYes.addEventListener("click", function(){
     closeTalkIdlePrompt();
     bumpLifeBond(2);
     render();
     playTalkPopup("스스로 다가와 말을 걸었어요 · 오늘 횟수와는 무관해요");
+    registerTalkIdleResponse();
     // 52번: "수다쟁이" 능력의 후천 취득 조건 — 유휴 소통 이벤트에 [호응해준다]로 응답한 누적
     // 횟수가 20회에 도달하면 자동 취득. 애니메이션과 겹치지 않도록 팝업은 살짝 지연 후 표시.
     if(!isAbilityOwned("chatterbox")){
@@ -7745,6 +8045,7 @@
     closeTalkIdlePrompt();
     bumpLifeBond(-2);
     render();
+    registerTalkIdleResponse();
     saveState();
   });
   // 48번(재작업): 엔딩씬이 별도 팝업이 아니라 마당 자체에 그려지므로, 편지 열기도 마당 캔버스를 눌러서
@@ -8094,9 +8395,14 @@
     // 세션에서 render()가 마당 캔버스를 도로 평소 장면으로 덮어쓸 뻔한 지점), 이번에 명시적으로 막음.
     if(state.ending) return;
     applyDecay();
+    // 76번(22장): 5종(멍함·미열·무기력증·새침함·예민함) 디버프의 상태값 기반 발현 판정 — 성공하면
+    // 힌트 문구를 토스트로 띄움(우선순위는 낮게, 방치 안내(away)보다는 뒤로 두지 않고 그냥 이 자리에서
+    // 바로 노출 — 다른 tick 안내와 겹칠 일이 거의 없는 20초 주기라 문제 없음).
+    var onsetHint = checkDebuffOnsets();
     render();
     saveState();
     tryFetchWeather();
+    if(onsetHint) showMessage(onsetHint);
   }, 20000);
 
   // 46번(45번 트리거 설계 수정): 소통버튼 유휴 트리거 — "화면 조작이 TALK_BUTTON_IDLE_MS(30초)
@@ -8566,6 +8872,11 @@
       var raw = AGILITY_REWARD_BASE[key] * (achievementPct/100) * depressionPenalty;
       var gain = Math.round(raw);
       if(gain <= 0) return;
+      // 76번(22장): 해당 기본능력에 매칭된 디버프가 있으면 상승 효과를 조용히 무효화 — 리포트 막대
+      // 그래프엔 그냥 변화 없음으로 나타남(별도 토스트 안내는 생략, 완료 보고에 명시된 단순화).
+      var gate = applyDebuffGate("core." + key, gain);
+      gain = Math.round(gate.amount);
+      if(gain <= 0) return;
       var cap = (state.growthMaxStats && typeof state.growthMaxStats[key] === "number") ? state.growthMaxStats[key] : 100;
       var before = state.core[key];
       state.core[key] = clamp(state.core[key] + gain, 0, cap);
@@ -8889,6 +9200,133 @@
   }
   function stopAgilityWander(){
     if(agilityWanderTimer){ window.clearInterval(agilityWanderTimer); agilityWanderTimer = null; }
+  }
+  // 76번(동물병원, 기획문서 22장 신규): [외출하기]의 준비중 placeholder였던 항목을 실제 진단/치료
+  // 화면으로 구현. 상점(shopVeil/switchShopTab, 007번)과 같은 "탭 버튼 + data 속성 + active 클래스"
+  // 패턴을 그대로 재사용 — [진단받기](뼈다귀 3개, 횟수 제한 없음)로 은폐(???)된 디버프의 정체를
+  // 밝히고, [치료하기](1회당 뼈다귀 5개, 하루 최대 3회)로 밝혀진 디버프의 치료를 시도함.
+  var VET_DIAGNOSE_COST = 3;
+  var VET_TREAT_COST = 5;
+  var VET_TREAT_DAILY_MAX = 3;
+
+  function switchVetTab(tab){
+    if(el.vetTabs){
+      el.vetTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+    }
+    if(el.vetPageDiagnose) el.vetPageDiagnose.hidden = (tab !== "diagnose");
+    if(el.vetPageTreat) el.vetPageTreat.hidden = (tab !== "treat");
+    if(tab === "treat") renderVetTreatGrid();
+  }
+  // 69번 상점과 같은 원칙 — 열 때마다 [진단받기] 탭으로 초기화(직전에 [치료하기] 탭을 보고 있었더라도).
+  function openVetVeil(){
+    closeVeil(el.outingVeil);
+    switchVetTab("diagnose");
+    openVeil(el.vetVeil);
+  }
+  function closeVetVeil(){
+    closeVeil(el.vetVeil);
+    openVeil(el.outingVeil);
+  }
+  if(el.vetTabs){
+    el.vetTabs.querySelectorAll(".shop-tab").forEach(function(btn){
+      btn.addEventListener("click", function(){ switchVetTab(this.dataset.tab); });
+    });
+  }
+  if(el.vetBackBtn) el.vetBackBtn.addEventListener("click", closeVetVeil);
+
+  // 지금 은폐(hidden:true) 상태로 걸려있는 디버프 목록 — [진단받기]가 전부 한 번에 공개함.
+  function ownedHiddenDebuffs(){
+    return DEBUFF_IDS.filter(function(id){
+      if(!isAbilityOwned(id)) return false;
+      var def = findAbilityDef(id);
+      var list = state.abilities[def.category] || [];
+      return list.some(function(a){ return a.id === "catalog:"+id && a.hidden; });
+    });
+  }
+  // 이미 공개됐고(hidden:false) 병원 치료 대상인(삐짐 제외) 디버프 목록 — [치료하기] 탭에 나열됨.
+  function ownedRevealedTreatableDebuffs(){
+    return DEBUFF_IDS.filter(function(id){
+      if(id === "sulking") return false; // 삐짐은 병원 치료 대상이 아님(소통버튼 응답으로만 해제)
+      if(!isAbilityOwned(id)) return false;
+      var def = findAbilityDef(id);
+      var list = state.abilities[def.category] || [];
+      return list.some(function(a){ return a.id === "catalog:"+id && !a.hidden; });
+    });
+  }
+  if(el.vetDiagnoseBtn){
+    el.vetDiagnoseBtn.addEventListener("click", function(){
+      if(!hasBones(VET_DIAGNOSE_COST)){ showMessage(pick(FLAVOR.poor)); return; }
+      var hidden = ownedHiddenDebuffs();
+      spendBones(VET_DIAGNOSE_COST);
+      if(!hidden.length){
+        showMessage("지금은 딱히 이상이 없어 보여요.");
+      } else {
+        var names = hidden.map(function(id){
+          revealDebuffAbility(id);
+          return findAbilityDef(id).name;
+        });
+        showMessage(state.name + josaIGa(state.name) + " " + names.join(", ") + "에 걸렸대!");
+        renderVetTreatGrid();
+      }
+      saveRenderPulse();
+    });
+  }
+  function renderVetTreatGrid(){
+    var host = el.vetTreatGrid;
+    if(!host) return;
+    host.innerHTML = "";
+    var ids = ownedRevealedTreatableDebuffs();
+    if(!ids.length){
+      var p = document.createElement("p");
+      p.className = "walk-summary-empty";
+      p.textContent = "지금은 치료할 증상이 없어요.";
+      host.appendChild(p);
+      return;
+    }
+    ids.forEach(function(id){
+      var def = findAbilityDef(id);
+      var item = document.createElement("div");
+      item.className = "shop-item";
+      var name = document.createElement("span");
+      name.className = "name";
+      name.textContent = def.name;
+      var desc = document.createElement("span");
+      desc.className = "desc";
+      desc.textContent = "치료 성공률 " + Math.round((def.cureRate || 0) * 100) + "%";
+      var btn = document.createElement("button");
+      btn.appendChild(document.createTextNode(VET_TREAT_COST + " "));
+      var coinDot = document.createElement("span");
+      coinDot.className = "coin-dot";
+      coinDot.style.width = "10px";
+      coinDot.style.height = "10px";
+      btn.appendChild(coinDot);
+      btn.disabled = state.coins < VET_TREAT_COST || state.vet.treatToday >= VET_TREAT_DAILY_MAX;
+      btn.addEventListener("click", function(){ treatDebuff(id); });
+      item.appendChild(name);
+      item.appendChild(desc);
+      item.appendChild(btn);
+      host.appendChild(item);
+    });
+  }
+  // 치료 시도 — 실패해도 뼈다귀·하루 횟수는 그대로 소모(재방문 필요, 엑셀 원문대로).
+  function treatDebuff(id){
+    if(!hasBones(VET_TREAT_COST) || state.vet.treatToday >= VET_TREAT_DAILY_MAX){
+      showMessage(pick(FLAVOR.poor));
+      return;
+    }
+    var def = findAbilityDef(id);
+    spendBones(VET_TREAT_COST);
+    state.vet.treatToday += 1;
+    if(Math.random() < (def.cureRate || 0)){
+      catalogRevoke(id);
+      showMessage("이번 치료가 확실히 효과가 있는 것 같아!");
+    } else {
+      showMessage("다음에 한 번 더 와야겠어...");
+    }
+    renderVetTreatGrid();
+    saveRenderPulse();
   }
 })();
 </script>

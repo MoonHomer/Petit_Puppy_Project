@@ -4,11 +4,19 @@
     // 40번: '우울증' 소지 시 훈련으로 오르는 기본능력도 10% 감소.
     var gain = (forced ? 3 : 6) * coreGrowthGate() * (isAbilityOwned("depression") ? 0.9 : 1);
     state.life.independence = clamp(state.life.independence - cost, 0, 100);
-    state.core[key] = clamp(state.core[key] + gain, 0, 100);
+    // 76번(22장): 해당 기본능력에 매칭된 디버프가 있으면 상승 효과를 조용히 무효화 — 아직 없다면
+    // 근력·민첩성 훈련에 한해 이 훈련을 계기로 '근육통'·'발가락삠'의 낮은 확률 발현을 시도.
+    var gate = applyDebuffGate("core." + key, gain);
+    state.core[key] = clamp(state.core[key] + gate.amount, 0, 100);
+    var onsetHint = null;
+    if(!gate.msg){
+      if(key === "power"){ onsetHint = tryOnsetDebuff("muscleAche", DEBUFF_EVENT_ONSET_CHANCE); }
+      else if(key === "agility"){ onsetHint = tryOnsetDebuff("toeSprain", DEBUFF_EVENT_ONSET_CHANCE); }
+    }
     if(forced){
       state.life.stress = clamp(state.life.stress + 10, 0, 100);
     }
-    showMessage(pick(TRAIN_FLAVOR[key][forced ? "forced" : "normal"]));
+    showMessage(gate.msg || onsetHint || pick(TRAIN_FLAVOR[key][forced ? "forced" : "normal"]));
     saveRenderPulse();
   }
   function handleTrainClick(key){
@@ -48,11 +56,24 @@
   // [무시한다] 유대감-2. playTalkPopup()/closeTalkIdlePrompt()는 각각 talkVeil·talkIdlePopup 쪽
   // UI만 갱신하고 메인화면 견생만족도 패널은 건드리지 않으므로, 두 핸들러 모두 render()를 직접 호출해
   // 유대감 수치가 바로 반영되도록 함.
+  // 76번(22장): [호응해준다]/[무시한다] 둘 다 소통버튼에 "응답"한 것으로 간주 — '삐짐'의 무응답
+  // 연속 스트릭(020번의 자동 닫힘 타이머 전용)을 리셋하고, 3회 이상 연속 응답이면 삐짐을 자동 해제함.
+  function registerTalkIdleResponse(){
+    state.abilityCounters.talkIdleResponseStreak = (state.abilityCounters.talkIdleResponseStreak || 0) + 1;
+    state.abilityCounters.talkIdleNoResponseStreak = 0;
+    if(state.abilityCounters.talkIdleResponseStreak >= 3 && isAbilityOwned("sulking")){
+      catalogRevoke("sulking");
+      window.setTimeout(function(){
+        showMessage(state.name + josaIGa(state.name) + " 다시 기분이 풀린 것 같아요.");
+      }, 1600);
+    }
+  }
   el.talkIdleYes.addEventListener("click", function(){
     closeTalkIdlePrompt();
     bumpLifeBond(2);
     render();
     playTalkPopup("스스로 다가와 말을 걸었어요 · 오늘 횟수와는 무관해요");
+    registerTalkIdleResponse();
     // 52번: "수다쟁이" 능력의 후천 취득 조건 — 유휴 소통 이벤트에 [호응해준다]로 응답한 누적
     // 횟수가 20회에 도달하면 자동 취득. 애니메이션과 겹치지 않도록 팝업은 살짝 지연 후 표시.
     if(!isAbilityOwned("chatterbox")){
@@ -72,6 +93,7 @@
     closeTalkIdlePrompt();
     bumpLifeBond(-2);
     render();
+    registerTalkIdleResponse();
     saveState();
   });
   // 48번(재작업): 엔딩씬이 별도 팝업이 아니라 마당 자체에 그려지므로, 편지 열기도 마당 캔버스를 눌러서

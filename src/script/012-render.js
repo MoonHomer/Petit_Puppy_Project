@@ -99,7 +99,14 @@
   // 별개의 개념 — growthPoints는 한 번 오르면 내려가지 않는 "지금까지 함께한 시간의 총량".
   function addGrowth(n){ state.growthPoints += n; }
   // 하루하루의 관계 만족도(life.bond, 0~100)는 케어할 때마다 조금씩 오르고 방치되면 서서히 식음.
-  function bumpLifeBond(n){ state.life.bond = clamp(state.life.bond + n, 0, 100); }
+  // 76번(22장): '새침함' 디버프 보유 시 유대감이 "오르는" 변화만 조용히 무효화됨 — applyDebuffGate로
+  // 게이트를 거친 뒤 반영. 반환값(무효화 안내 멘트, 없으면 null)은 새로 추가된 것이라 호출부가 원하면
+  // 자기 showMessage에 조합해 쓸 수 있고, 기존 호출부들은 반환값을 그냥 무시해도 동작에 영향 없음.
+  function bumpLifeBond(n){
+    var gate = applyDebuffGate("life.bond", n);
+    state.life.bond = clamp(state.life.bond + gate.amount, 0, 100);
+    return gate.msg;
+  }
 
   // ===== 64번(기획문서 15장): 게임 진행 핵심 소모품 체계 — 뼈다귀·게임 내 시간 =====
   // 뼈다귀(state.coins, 🦴)는 기존 상점 화폐 기능을 그대로 유지하면서, 이제 [기본돌봄]·[산책]처럼

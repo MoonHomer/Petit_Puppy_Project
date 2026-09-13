@@ -38,6 +38,11 @@
     if(state.time.absHour % 2 === 0 && isAbilityOwned("blessedPup")){
       state.coins += 1;
     }
+    // 76번(22장): 부정 디버프 10종 중 뭐라도 걸려있는 동안 공통 부수효과 — 게임 내 시간 2시간마다
+    // 공격성 +3(엑셀 '기타' 란 공통 명시, 삐짐 포함). blessedPup과 같은 absHour 짝수 판정을 재사용.
+    if(state.time.absHour % 2 === 0 && anyActiveDebuff()){
+      state.core.aggression = clamp(state.core.aggression + 3, 0, 100);
+    }
   }
   function gameClockLabel(){
     var h = state.time.hour;
@@ -64,15 +69,17 @@
     var hungerGain = isAbilityOwned("hoarder") ? 28 : 25;
     state.life.hunger = clamp(state.life.hunger + hungerGain, 0, 100);
     var stressRelief = 3 * effMult("happinessGain","happinessGainCalm","happinessGainFeed");
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함' 디버프 보유 시 스트레스 감소 효과가 조용히 무효화됨.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     addGrowth(2 * effMult("bondGain"));
-    bumpLifeBond(2);
+    var bondMsg = bumpLifeBond(2);
     // 64번(15장): 밥주기도 [기본돌봄] 5개 활동 중 하나로 뼈다귀 1개를 "소모"함 — 기존에 여기서
     // 주던 +1 코인 보상은 제거(사용자 확인: "구분 없이 전부 1개 소모"라는 원안과 상충해 보상 없이
     // 순수 소모만 하도록 확정, 놀아주기도 동일).
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.feed));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.feed));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }
@@ -85,15 +92,17 @@
     var energyMult = effMult("energyDrain");
     var stressRelief = 20 * effMult("happinessGain","happinessGainActive");
     var independenceCost = 15 * energyMult;
-    state.life.stress = clamp(state.life.stress - stressRelief, 0, 100);
+    // 76번(22장): '예민함' 디버프 보유 시 스트레스 감소 효과가 조용히 무효화됨.
+    var stressGate = applyDebuffGate("life.stress", -stressRelief);
+    state.life.stress = clamp(state.life.stress + stressGate.amount, 0, 100);
     state.life.independence = clamp(state.life.independence - independenceCost, 0, 100);
     state.life.hunger = clamp(state.life.hunger - 5, 0, 100);
     addGrowth(3 * effMult("bondGain"));
-    bumpLifeBond(3);
+    var bondMsg = bumpLifeBond(3);
     // 64번(15장): 놀아주기의 기존 +2 코인 보상도 밥주기와 동일한 이유로 제거하고 뼈다귀 1개 소모로 전환.
     spendBones(BONE_COST_CARE);
     advanceGameTime();
-    showMessage(pick(FLAVOR.play[tierFor(energyMult)]));
+    showMessage(stressGate.msg || bondMsg || pick(FLAVOR.play[tierFor(energyMult)]));
     saveRenderPulse();
     maybeTriggerDayEnd();
   }

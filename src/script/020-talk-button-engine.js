@@ -211,6 +211,14 @@
       closeTalkIdlePrompt();
       bumpLifeBond(-1);
       state.life.stress = clamp(state.life.stress + 1, 0, 100);
+      // 76번(22장): '삐짐'의 취득 조건 — 소통버튼 유휴 확인 팝업에 5회 "연속" 무응답(자동 닫힘) 시
+      // 확정 발생. [호응해준다]/[무시한다] 중 하나를 눌러 응답하면(022번) 이 스트릭이 즉시 리셋됨.
+      state.abilityCounters.talkIdleNoResponseStreak = (state.abilityCounters.talkIdleNoResponseStreak || 0) + 1;
+      state.abilityCounters.talkIdleResponseStreak = 0;
+      if(state.abilityCounters.talkIdleNoResponseStreak >= 5 && !isAbilityOwned("sulking")){
+        catalogGrant("sulking");
+        showMessage(state.name + josaIGa(state.name) + " 삐졌어요...");
+      }
       render();
       saveState();
     }, TALK_BUTTON_IDLE_AUTO_DISMISS_MS);

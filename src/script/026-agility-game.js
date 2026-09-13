@@ -78,6 +78,11 @@
       var raw = AGILITY_REWARD_BASE[key] * (achievementPct/100) * depressionPenalty;
       var gain = Math.round(raw);
       if(gain <= 0) return;
+      // 76번(22장): 해당 기본능력에 매칭된 디버프가 있으면 상승 효과를 조용히 무효화 — 리포트 막대
+      // 그래프엔 그냥 변화 없음으로 나타남(별도 토스트 안내는 생략, 완료 보고에 명시된 단순화).
+      var gate = applyDebuffGate("core." + key, gain);
+      gain = Math.round(gate.amount);
+      if(gain <= 0) return;
       var cap = (state.growthMaxStats && typeof state.growthMaxStats[key] === "number") ? state.growthMaxStats[key] : 100;
       var before = state.core[key];
       state.core[key] = clamp(state.core[key] + gain, 0, cap);

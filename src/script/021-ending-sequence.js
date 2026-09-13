@@ -99,6 +99,8 @@
     state.outing.usedPlaces = [];
     // 74번(어질리티 연습장 신규): 하루 1회 제한도 여기서 함께 리셋 — 다음 날 다시 도전 가능.
     if(state.agility) state.agility.playedToday = false;
+    // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한도 여기서 함께 리셋.
+    if(state.vet) state.vet.treatToday = 0;
     // 37번: 성장 단계 전환 확인 — 예전엔 startWalk()의 즉시 하루진행 블록에서 불렀지만, fosterDay가
     // 이제 이 시퀀스에서만 증가하므로 여기로 옮김.
     checkGrowthStageTransition();
