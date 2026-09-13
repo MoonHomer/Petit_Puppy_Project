@@ -81,12 +81,17 @@
     // 비율 그대로 함께 줄어들게 함(다리 길이가 짧아져도 bodyBottom=groundRow-legH 공식 덕에 발은 항상
     // 접지선에 그대로 붙어있음 — 별도 캔버스 좌표 보정 불필요).
     var gv = growthVisual();
+    // 75번(21장): 누적 스탯 기반 시각 개성화 입력값 — growthVisual()과 나란히, drawPixelDog()의
+    // 기존 계산식에 배율/오프셋만 얹는 식으로 소비함(새 그래픽 자산 없음, statVisual() 주석 참고).
+    var sv = statVisual();
     var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
-    var legH = Math.max(2, Math.round(H * sc.legRatio));
+    // 민첩성: 다리 비율 소폭 조정
+    var legH = Math.max(2, Math.round(H * sc.legRatio * sv.legHMult));
     var bodyH = Math.max(3, Math.round(H * (sc.bodyHRatio || 0.40)));
     var headH = Math.max(3, H - legH - bodyH);
-    var bodyW = Math.max(4, Math.round(L * 0.56));
+    // 근력: 체형(가슴·어깨 폭) 비율 소폭 조정
+    var bodyW = Math.max(4, Math.round(L * 0.56 * sv.bodyWMult));
     // 머리 폭은 "길이"가 아니라 "체고"를 기준으로 잡아, 몸통이 길게 늘어난 견종(웰시코기 등)도
     // 머리만 같이 늘어나 보이지 않고 자연스러운 크기를 유지하게 함
     var headW = Math.max(4, Math.round(H * 0.40));
@@ -97,9 +102,12 @@
     var bodyBottom = groundRow - legH;
     var bodyTop = bodyBottom - bodyH;
     // 머리는 몸통 앞쪽(오른쪽) 끝에 상당 부분 겹쳐 붙어, 목이 끊겨 보이지 않도록 함
-    var headLeft = bodyRight - Math.round(headW*0.68);
+    // 민첩성: 스프린터형으로 살짝 앞으로 기운 자세(머리를 미세하게 앞쪽으로 당김)
+    var headLeft = bodyRight - Math.round(headW*0.68) + (sv.leanForwardPx || 0);
     // 70번: 찹찹츄는 headDroop만큼 머리를 살짝 낮춰 그려 "고개가 살짝 낮음" 자세를 표현
-    var headBottom = bodyTop + Math.round(bodyH*0.55) + (gv.headDroop || 0);
+    // 75번: 수행력이 높을수록 그 처짐을 완화(자세가 반듯하고 정렬됨)
+    var effectiveHeadDroop = Math.round((gv.headDroop || 0) * (1 - sv.postureStraighten * 0.6));
+    var headBottom = bodyTop + Math.round(bodyH*0.55) + effectiveHeadDroop;
     var headTop = headBottom - headH;
     var headRight = headLeft + headW;
 
@@ -161,21 +169,31 @@
       var stubH = Math.max(1, Math.round(tailH*0.65));
       ctx.fillRect(bodyLeft - stubW + 1, bodyBottom - stubH + oy, stubW, stubH);
     } else if(tailStyle === "otter"){
-      // 래브라도: 두툼하고 곧게 뻗은 "수달 꼬리"
-      ctx.fillRect(bodyLeft - tailW, bodyTop + Math.round(bodyH*0.35) + oy, tailW + 1, tailH);
+      // 래브라도: 두툼하고 곧게 뻗은 "수달 꼬리" — 75번: 친화력이 높으면 기본값으로 살짝 들려있음
+      ctx.fillRect(bodyLeft - tailW, bodyTop + Math.round(bodyH*0.35) - sv.tailLiftPx + oy, tailW + 1, tailH);
     } else {
       // 골든 리트리버/보더콜리: 부드럽게 살랑이는 꼬리
       var tailX = bodyLeft - tailW + 1;
       var tailY;
       if(mood === "sad"){ tailY = bodyBottom - Math.round(tailH*0.5); }
       else if(mood === "sleepy"){ tailY = bodyTop + Math.round(bodyH*0.25); }
-      else { tailY = pixelTailFrame ? (bodyTop - Math.round(tailH*0.15)) : (bodyTop + Math.round(bodyH*0.3)); }
+      // 75번: 친화력이 높으면 기본값으로 살짝 들려있음(슬프거나 졸릴 때는 그대로 두어 감정 표현 유지)
+      else { tailY = (pixelTailFrame ? (bodyTop - Math.round(tailH*0.15)) : (bodyTop + Math.round(bodyH*0.3))) - sv.tailLiftPx; }
       ctx.fillRect(tailX, tailY + oy, tailW, tailH);
     }
 
     // 몸통
     ctx.fillStyle = furA;
     ctx.fillRect(bodyLeft, bodyTop + oy, bodyW, bodyH);
+
+    // 75번: 건강함 → 털 하이라이트(윤기) 레이어 강화 — 등줄기를 따라 옅은 밝은 띠를 얹어 표현
+    if(sv.furShineAlpha > 0){
+      ctx.save();
+      ctx.globalAlpha = sv.furShineAlpha;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(bodyLeft + Math.round(bodyW*0.08), bodyTop + oy, Math.round(bodyW*0.84), Math.max(1, Math.round(bodyH*0.16)));
+      ctx.restore();
+    }
 
     // 엉덩이 뽕(rumpBump) — 웰시코기처럼 봉긋하고 풍성한 뒷모습을 가진 견종만
     if(sc.rumpBump){
@@ -193,7 +211,8 @@
     // 것처럼 허전해 보이지 않게 함. 처진 귀는 아래로 늘어지고, 쫑긋 선 귀는 위로 솟음.
     // 모색과 무관하게 항상 또렷이 구분되도록 각 팔레트의 "짙은" 색(aDark)을 사용
     // 70번: 털뭉치는 귀가 조금 더 쫑긋(earPerk>1), 찹찹츄는 살짝 처짐(earPerk<1)
-    var earScale = (sc.earScale || 1) * gv.earPerk;
+    // 75번: 이해력이 높으면 귀가 항상 쫑긋 선 기본 자세(확대), 공격성이 높으면 살짝 뒤로 젖혀진 인상(축소)
+    var earScale = (sc.earScale || 1) * gv.earPerk * sv.earAlertMult * sv.earBackMult;
     if(earStyle === "erect"){
       var earW = Math.max(2, Math.round(headW*0.30*earScale));
       var earH = Math.max(2, Math.round(headH*0.62*earScale));
@@ -255,7 +274,8 @@
     var eyesClosed = forceEyesClosed ? true : (mood === "sleepy" ? true : pixelBlink);
     var eyeY = headTop + Math.round(headH*0.42);
     if(!eyesClosed){
-      var eyeSize = Math.max(1, Math.round(headW*0.14));
+      // 75번: 충성도·친화력이 높으면 눈매가 부드럽고 둥글게(확대), 공격성이 높으면 눈매가 날카롭게(축소)
+      var eyeSize = Math.max(1, Math.round(headW*0.14 * sv.eyeSoftMult * sv.eyeSharpMult));
       ctx.fillStyle = eyeColor;
       ctx.fillRect(headLeft + Math.round(headW*0.32), eyeY + oy, eyeSize, eyeSize);
       ctx.fillRect(headLeft + Math.round(headW*0.6), eyeY + oy, eyeSize, eyeSize);
@@ -264,6 +284,23 @@
       ctx.fillStyle = furD;
       ctx.fillRect(headLeft + Math.round(headW*0.30), eyeY + oy, lineW, 1);
       ctx.fillRect(headLeft + Math.round(headW*0.58), eyeY + oy, lineW, 1);
+    }
+
+    // 75번(21장): 능력 보유 → 시각적 표식(원칙만 반영) — 취득한 능력(catalog: 접두사) 하나당 머리 위에
+    // 작은 점 하나씩, 최대 ABILITY_BADGE_MAX개까지만 그려 화면이 어지러워지지 않게 함. 긍정 능력은
+    // 밝은 초록, 부정 능력은 탁한 주황으로 구분(개별 능력별 구체 모양·색 매핑은 다음 라운드 오픈 이슈).
+    var badgeAbilities = ownedCatalogAbilities();
+    if(badgeAbilities.length){
+      var badgeCount = Math.min(badgeAbilities.length, ABILITY_BADGE_MAX);
+      var badgeSize = Math.max(1, Math.round(headW*0.09));
+      var badgeGap = Math.max(1, Math.round(badgeSize*0.6));
+      var badgeRowW = badgeCount*badgeSize + (badgeCount-1)*badgeGap;
+      var badgeStartX = headLeft + Math.round(headW/2) - Math.round(badgeRowW/2);
+      var badgeY = headTop - badgeSize - Math.max(1, Math.round(headH*0.12));
+      for(var bi=0; bi<badgeCount; bi++){
+        ctx.fillStyle = badgeAbilities[bi].positive ? "#5FBF6B" : "#D98A3D";
+        ctx.fillRect(badgeStartX + bi*(badgeSize+badgeGap), badgeY + oy, badgeSize, badgeSize);
+      }
     }
   }
 

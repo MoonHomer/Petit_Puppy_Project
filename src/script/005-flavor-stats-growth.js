@@ -82,6 +82,64 @@
     var idx = (typeof state !== "undefined" && typeof state.growthStage === "number") ? state.growthStage : 2;
     return GROWTH_STAGE_VISUAL[idx] || GROWTH_STAGE_VISUAL[2];
   }
+  // 75번(기획문서 21장, 수정안 B): 스탯 기반 그래픽 개성화 — 누적 기본능력 8종을 drawPixelDog()의
+  // 추가 입력값으로 변환하는 함수. growthVisual()과 같은 패턴(파라미터 배율/오프셋 묶음을 반환)이며,
+  // 새 그래픽 세트를 그리지 않고 기존 드로잉 로직의 계산값에 곱/더하기만 하는 방식(사용자 원칙 그대로).
+  // 수치 범위(예: 근력이 몇 이상일 때 체형이 얼마나 커지는지)는 21장에 "미정 — 개발 시 확인 필요"로
+  // 명시돼 있어 Claude가 판단해 채움(오픈 이슈로 기록) — 전부 50을 "평균/변화 없음" 기준으로 삼아
+  // 좌우로 완만하게(대부분 ±10~15% 이내) 보정해, 스탯 하나가 실루엣을 망가뜨리지 않게 함.
+  function statVisual(){
+    var c = (typeof state !== "undefined" && state.core) ? state.core : {};
+    var power = typeof c.power === "number" ? c.power : 50;
+    var agility = typeof c.agility === "number" ? c.agility : 50;
+    var comprehension = typeof c.comprehension === "number" ? c.comprehension : 50;
+    var execution = typeof c.execution === "number" ? c.execution : 50;
+    var loyalty = typeof c.loyalty === "number" ? c.loyalty : 50;
+    var affinity = typeof c.affinity === "number" ? c.affinity : 50;
+    var health = typeof c.health === "number" ? c.health : 50;
+    var aggression = typeof c.aggression === "number" ? c.aggression : 50;
+    function norm(v){ return (v - 50) / 50; } // 0~100 → -1~+1
+    function pos(v){ return Math.max(0, norm(v)); } // 평균 이상일 때만 0~1
+    return {
+      // 근력 → 체형(가슴·어깨 폭) 비율 소폭 확대(±12%)
+      bodyWMult: 1 + norm(power) * 0.12,
+      // 민첩성 → 다리 비율 소폭 길게(±10%) + 스프린터형으로 살짝 앞으로 기운 자세(최대 ±1px)
+      legHMult: 1 + norm(agility) * 0.10,
+      leanForwardPx: Math.round(norm(agility)),
+      // 이해력 → 귀가 항상 쫑긋 선 기본 자세(처진귀도 소폭 덜 늘어지게, 최대 +15%)
+      // (고개 갸웃 idle 포즈 확률 증가는 애니메이션/상태머신 레벨이라 이번 라운드 범위 밖 — 오픈 이슈)
+      earAlertMult: 1 + pos(comprehension) * 0.15,
+      // 수행력 → 자세가 반듯하고 정렬됨: 노년기(찹찹츄) 특유의 headDroop을 수행력이 높을수록 완화
+      postureStraighten: pos(execution),
+      // 충성도 → 눈매가 부드러움 / 친화력 → 눈이 더 둥글게: 둘 다 눈 크기를 살짝 키워 표현(합산 최대 +20%)
+      eyeSoftMult: 1 + (pos(loyalty) + pos(affinity)) * 0.10,
+      // 친화력 → 꼬리가 기본값으로 살짝 들려있음(살랑/수달 꼬리 계열, 최대 2px)
+      // (좌우로 흔들리는 idle 확률 증가는 애니메이션 레벨이라 이번 라운드 범위 밖 — 오픈 이슈)
+      tailLiftPx: Math.round(pos(affinity) * 2),
+      // 건강함 → 털 하이라이트(윤기) 레이어 강화(최대 알파 0.30)
+      furShineAlpha: pos(health) * 0.30,
+      // 공격성 → 귀가 살짝 뒤로 젖혀진 기본 자세(귀 스케일 최대 -12%), 눈매가 날카로움(눈 최대 -15%)
+      earBackMult: 1 - pos(aggression) * 0.12,
+      eyeSharpMult: 1 - pos(aggression) * 0.15
+    };
+  }
+  // 75번(기획문서 21장, 수정안 B): 능력 보유 → 시각적 표식(원칙만 반영, 40여 종 개별 매핑은 다음
+  // 라운드로 — 개발팀 제안 후 사용자 확인 예정). state.abilities 4분류 중 온보딩에서 전원에게 항상
+  // 자동 부여되는 성격·패시브(personality:/passive: 접두사)는 육성 방향과 무관해 "다르게 키우면
+  // 다르게 생김"의 신호가 못 되므로 제외하고, ABILITY_CATALOG에서 실제로 취득한 능력(catalog: 접두사)만
+  // 표식 대상으로 삼음. ABILITY_BADGE_MAX로 캡을 둬 능력이 많아져도 화면이 어지러워지지 않게 함
+  // (캡 값·표식 모양은 Claude 판단, 오픈 이슈 — 실플레이 후 조정 가능).
+  var ABILITY_BADGE_MAX = 6;
+  function ownedCatalogAbilities(){
+    if(typeof state === "undefined" || !state.abilities) return [];
+    var out = [];
+    ["innateUnique","innateCommon","acquiredUnique","acquiredCommon"].forEach(function(cat){
+      (state.abilities[cat] || []).forEach(function(a){
+        if(a && a.id && a.id.indexOf("catalog:") === 0) out.push(a);
+      });
+    });
+    return out;
+  }
   // 시작 성장단계별 초기 스탯 비율(성장최대기대치 대비 [최소,최대]) — 8개 스탯 각각 독립적으로 굴리고
   // 절사(Math.floor)함. 시작 확률은 4단계 균등(25%)이 문서의 기본값.
   var GROWTH_STAGE_RATIO = [[0.30,0.50],[0.60,0.90],[0.90,1.00],[0.20,0.50]];
