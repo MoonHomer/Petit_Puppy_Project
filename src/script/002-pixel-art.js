@@ -70,20 +70,25 @@
   // 실루엣 전체를 그대로 밀어 그릴 수 있도록 함. 다른 모든 호출부(홈 화면·산책 팝업)는 생략 시 0으로 기존과 동일.
   // 53번: forceEyesClosed — 멍멍모드의 수면형 포즈(웅크려 잠들기/꿈꾸는 다리)에서 mood나 blink 타이밍과
   // 무관하게 항상 눈을 감은 모습으로 그리기 위한 선택 인자. 생략하면(undefined/false) 기존 로직 그대로.
-  function drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed){
-    var breedId = state.breed || "golden";
+  // 77번(기다려 대회): override — 유저의 개가 아닌 "다른 개"(대회 상대견 4마리 등)를 같은 캔버스에
+  // 동시에 다른 생김새·색상으로 그려야 할 때 쓰는 선택 인자. {breedId, furA, furADark, furB, furC, furD,
+  // eyeColor, gv, sv, mood, noBadges}를 전달하면 전역 state 대신 이 값들을 사용 — 생략(undefined)하면
+  // 기존처럼 항상 state(유저 자신의 개)를 그대로 읽어, 기존 호출부는 전부 그대로 안전.
+  function drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed, override){
+    var ov = override || null;
+    var breedId = (ov && ov.breedId) ? ov.breedId : (state.breed || "golden");
     // 29번: 믹스견은 전용 실루엣이 없어, 온보딩 때 매칭된 두 견종 중 체구 출처로 뽑힌 쪽의 픽셀 지오메트리를 그대로 재사용
-    if(breedId === "mix" && state.mixGeoBreed){ breedId = state.mixGeoBreed; }
+    if(!ov && breedId === "mix" && state.mixGeoBreed){ breedId = state.mixGeoBreed; }
     var sc = BREED_PXSCALE[breedId] || BREED_PXSCALE.golden;
     var earStyle = sc.earStyle || "floppy";
     var tailStyle = sc.tailStyle || "wag";
     // 70번(20장): 성장 단계별 시각 변수 — 체고(H)에 스케일을 곱해 다리·몸통·머리 등 모든 하위 치수가
     // 비율 그대로 함께 줄어들게 함(다리 길이가 짧아져도 bodyBottom=groundRow-legH 공식 덕에 발은 항상
     // 접지선에 그대로 붙어있음 — 별도 캔버스 좌표 보정 불필요).
-    var gv = growthVisual();
+    var gv = (ov && ov.gv) ? ov.gv : growthVisual();
     // 75번(21장): 누적 스탯 기반 시각 개성화 입력값 — growthVisual()과 나란히, drawPixelDog()의
     // 기존 계산식에 배율/오프셋만 얹는 식으로 소비함(새 그래픽 자산 없음, statVisual() 주석 참고).
-    var sv = statVisual();
+    var sv = (ov && ov.sv) ? ov.sv : statVisual();
     var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     // 민첩성: 다리 비율 소폭 조정
@@ -111,15 +116,15 @@
     var headTop = headBottom - headH;
     var headRight = headLeft + headW;
 
-    var mood = moodOf();
+    var mood = (ov && ov.mood) ? ov.mood : moodOf();
     var oy = (mood !== "sleepy" && !reduceMotion() && pixelBobUp) ? -1 : 0;
 
-    var furA = cssVar("--fur-a", "#E7C79A");
-    var furADark = cssVar("--fur-a-dark", "#C79E68");
-    var furB = cssVar("--fur-b", "#B98A5E");
-    var furC = cssVar("--fur-c", "#EDEDED");
-    var furD = cssVar("--fur-d", "#4A4038");
-    var eyeColor = cssVar("--eye-color", furD);
+    var furA = (ov && ov.furA) || cssVar("--fur-a", "#E7C79A");
+    var furADark = (ov && ov.furADark) || cssVar("--fur-a-dark", "#C79E68");
+    var furB = (ov && ov.furB) || cssVar("--fur-b", "#B98A5E");
+    var furC = (ov && ov.furC) || cssVar("--fur-c", "#EDEDED");
+    var furD = (ov && ov.furD) || cssVar("--fur-d", "#4A4038");
+    var eyeColor = (ov && ov.eyeColor) || cssVar("--eye-color", furD);
     // 70번: 찹찹츄는 몸통·귀 털색을 옅게 탈채도(전신에 은은하게) — 코·눈동자(furD/eyeColor)는 그대로
     // 두어 표정이 흐려지지 않게 함. "입가·눈가 회색 톤" 디테일 포인트는 아래 주둥이/눈 블록 근처에서
     // 별도로 반투명 패치를 얹어 표현.
@@ -289,7 +294,7 @@
     // 75번(21장): 능력 보유 → 시각적 표식(원칙만 반영) — 취득한 능력(catalog: 접두사) 하나당 머리 위에
     // 작은 점 하나씩, 최대 ABILITY_BADGE_MAX개까지만 그려 화면이 어지러워지지 않게 함. 긍정 능력은
     // 밝은 초록, 부정 능력은 탁한 주황으로 구분(개별 능력별 구체 모양·색 매핑은 다음 라운드 오픈 이슈).
-    var badgeAbilities = ownedCatalogAbilities();
+    var badgeAbilities = (ov && ov.noBadges) ? [] : ownedCatalogAbilities();
     if(badgeAbilities.length){
       var badgeCount = Math.min(badgeAbilities.length, ABILITY_BADGE_MAX);
       var badgeSize = Math.max(1, Math.round(headW*0.09));

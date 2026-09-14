@@ -76,7 +76,12 @@
       agility:{ playedToday:false },
       // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한 카운터 — 하루 종료 시퀀스에서 0으로 리셋.
       // [진단받기]는 횟수 제한이 없어 별도 카운터가 필요 없음.
-      vet:{ treatToday:0 }
+      vet:{ treatToday:0 },
+      // 77번([기다려 대회] 신규): playedToday는 하루 종료 시퀀스에서 리셋(4단계 통틀어 하루 1회 —
+      // 사용자 확인). winCounts는 단계 승급 조건("OO대회 N회 이상 1위") 판정용 누적 우승 횟수로,
+      // 하루 종료와 무관하게 이 회차 육성이 끝날 때까지 계속 누적됨(리셋 없음). beginnerAnnounced는
+      // 초급대회 최초 해금 안내 팝업을 "한 번만" 띄우기 위한 플래그.
+      competition:{ playedToday:false, winCounts:{ beginner:0, intermediate:0, advanced:0 }, beginnerAnnounced:false }
     };
   }
 
@@ -205,6 +210,11 @@
   // 76번(동물병원 신규, 22장): 도입 전 저장분 마이그레이션 — 오늘 아직 치료 안 받은 상태로 시작.
   if(!state.vet){
     state.vet = { treatToday:0 };
+  }
+  // 77번([기다려 대회] 신규): 도입 전 저장분 마이그레이션 — 오늘 아직 참여 안 한 상태로 시작, 우승
+  // 누적·최초 안내 팝업 플래그도 0/false로 시작(단계 승급은 이 회차 육성에서 새로 쌓아가야 함).
+  if(!state.competition){
+    state.competition = { playedToday:false, winCounts:{ beginner:0, intermediate:0, advanced:0 }, beginnerAnnounced:false };
   }
 
   function stageIndex(bond){

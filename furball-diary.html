@@ -1549,7 +1549,7 @@
     font-variant-numeric:tabular-nums;
   }
   .agility-timer-track{
-    flex:1; height:8px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); overflow:hidden;
+    position:relative; flex:1; height:8px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); overflow:hidden;
   }
   .agility-timer-fill{
     height:100%; width:100%; border-radius:999px;
@@ -1585,6 +1585,45 @@
   .agility-result{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
   .agility-result h3{ margin:0; font-size:1rem; }
   .agility-result p{ margin:0; font-size:0.84rem; color:var(--ink-soft); line-height:1.5; }
+
+  /* ---- 77번: [기다려 대회] — 어질리티 연습장(74번)의 화면 큰 구성(veil 안 scene/게이지/결과)을
+     그대로 따르되, 위아래 여백을 최대한 줄여 시상대 5세트가 꽉 차 보이도록 함(028번 JS). ---- */
+  .competition-card{ gap:10px; }
+  .competition-closed{ text-align:center; padding:24px 8px; }
+  .competition-tiers{ display:flex; flex-direction:column; gap:10px; }
+  .competition-tier-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .competition-tier{
+    display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
+    background:var(--card-2); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; cursor:pointer; transition:opacity .12s ease, background .12s ease;
+  }
+  .competition-tier:active{ transform:translateY(1px); }
+  .competition-tier .tier-name{ font-family:var(--font-display); font-weight:700; font-size:0.9rem; color:var(--ink); }
+  .competition-tier .tier-cond{ font-size:0.7rem; color:var(--ink-faint); line-height:1.4; }
+  /* 잠긴 단계는 HTML disabled가 아니라 회색 스타일만 입힘 — 눌러보면 부족한 조건을 알려줘야 하므로
+     (사용자 지시) 클릭 자체는 계속 받아야 함. */
+  .competition-tier.locked{ opacity:0.5; background:var(--card); }
+  .competition-tier.locked .tier-name{ color:var(--ink-faint); }
+  .competition-arena{ display:flex; flex-direction:column; gap:6px; }
+  .competition-scene{
+    position:relative; aspect-ratio:290/108; overflow:hidden;
+    border-radius:14px; border:1px solid var(--line);
+  }
+  .competition-scene-canvas{
+    position:absolute; inset:0; display:block; width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  .competition-cycle-label{
+    margin:0; text-align:center; font-family:var(--font-display); font-size:0.8rem;
+    font-weight:600; color:var(--ink-soft);
+  }
+  /* 3초 게이지 위에 1초·2초·3초 지점을 표시하는 작은 발바닥 눈금 — agility-timer-track을 그대로 재사용. */
+  .competition-gauge-tick{
+    position:absolute; top:50%; transform:translate(-50%,-50%); font-size:0.62rem; pointer-events:none;
+  }
+  .competition-result{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
+  .competition-result h3{ margin:0; font-size:1rem; }
+  .competition-result p{ margin:0; font-size:0.84rem; color:var(--ink-soft); line-height:1.5; }
 
   /* ---- 산책(walk) 세션 ---- */
   .walk-card{ gap:10px; }
@@ -2130,6 +2169,61 @@
   </div>
 </div>
 
+<!-- 77번([기다려 대회] 신규): [외출하기]의 "대회/이벤트"(47번, 완전한 자리표시자였음) 첫 실제 콘텐츠.
+     초급/중급/상급/스페셜리스트 4단계 — 시상대(단상) 5개 위에 유저 개+상대견 4마리가 랜덤 배치되고,
+     [기다려] 버튼을 누르면 3초 게이지가 흐르며 1초마다 각 개별 성공/실패 판정, 실패하면 탈락(단상은
+     남고 개만 사라짐), 마지막 1마리가 남을 때까지 반복하는 서바이벌 형식(028번 JS). -->
+<div class="veil" id="competitionVeil">
+  <div class="onboard subscreen competition-card">
+    <h2>기다려 대회</h2>
+    <div class="competition-closed" id="competitionClosed" hidden>
+      <p class="attach-desc">준비 중, 오전 10시~오후5시에 참여가능해요!</p>
+    </div>
+    <div class="competition-tiers" id="competitionTierSelect" hidden>
+      <p class="attach-desc">단계를 선택해서 [기다려] 대회에 도전해봐요! (참여 시 뼈다귀 2개, 하루 1회)</p>
+      <div class="competition-tier-grid">
+        <button type="button" class="competition-tier" id="competitionTierBeginner" data-tier="beginner">
+          <span class="tier-name">초급대회</span>
+          <span class="tier-cond" id="competitionTierBeginnerCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierIntermediate" data-tier="intermediate">
+          <span class="tier-name">중급대회</span>
+          <span class="tier-cond" id="competitionTierIntermediateCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierAdvanced" data-tier="advanced">
+          <span class="tier-name">상급대회</span>
+          <span class="tier-cond" id="competitionTierAdvancedCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierSpecialist" data-tier="specialist">
+          <span class="tier-name">스페셜리스트 대회</span>
+          <span class="tier-cond" id="competitionTierSpecialistCond"></span>
+        </button>
+      </div>
+    </div>
+    <div class="competition-arena" id="competitionArena" hidden>
+      <div class="competition-scene" id="competitionScene" aria-hidden="true">
+        <canvas class="competition-scene-canvas" id="competitionCanvas" width="290" height="108"></canvas>
+      </div>
+      <p class="competition-cycle-label" id="competitionCycleLabel"></p>
+      <div class="agility-round-row">
+        <div class="agility-timer-track"><div class="agility-timer-fill" id="competitionGaugeFill"></div>
+          <span class="competition-gauge-tick" style="left:32%"></span>
+          <span class="competition-gauge-tick" style="left:65%"></span>
+          <span class="competition-gauge-tick" style="left:97%"></span>
+        </div>
+      </div>
+      <button type="button" class="start-btn" id="competitionWaitBtn">기다려</button>
+    </div>
+    <div class="competition-result" id="competitionResult" hidden>
+      <h3 id="competitionResultTitle">대회 결과</h3>
+      <p id="competitionResultText"></p>
+      <div class="walk-summary-stats" id="competitionResultStats"></div>
+      <button class="start-btn" id="competitionResultClose">확인</button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="competitionBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
 <div class="veil" id="placeholderVeil">
   <div class="onboard subscreen placeholder-card">
     <h2 id="placeholderTitle">준비중</h2>
@@ -2308,6 +2402,17 @@
     <h3 id="descPopupTitle"></h3>
     <p id="descPopupText"></p>
     <button type="button" class="start-btn" id="descPopupClose">닫기</button>
+  </div>
+</div>
+
+<!-- 77번([기다려 대회] 신규): 초급대회 최초 해금 시(임시보호 2일차 오전 9시 이후) 딱 한 번만 뜨는
+     안내 팝업 — descPopup과 같은 오버레이 구조를 재사용하지만, 배경(veil) 클릭으로는 닫히지 않고
+     오직 [확인] 버튼을 눌러야만 사라짐(사용자 지시: "유저가 확인 눌러야 사라지는 방식"). -->
+<div class="desc-popup" id="competitionAnnouncePopup" hidden>
+  <div class="desc-popup-box">
+    <h3>🏆 기다려 대회</h3>
+    <p id="competitionAnnounceText"></p>
+    <button type="button" class="start-btn" id="competitionAnnounceClose">확인</button>
   </div>
 </div>
 
@@ -2637,20 +2742,25 @@
   // 실루엣 전체를 그대로 밀어 그릴 수 있도록 함. 다른 모든 호출부(홈 화면·산책 팝업)는 생략 시 0으로 기존과 동일.
   // 53번: forceEyesClosed — 멍멍모드의 수면형 포즈(웅크려 잠들기/꿈꾸는 다리)에서 mood나 blink 타이밍과
   // 무관하게 항상 눈을 감은 모습으로 그리기 위한 선택 인자. 생략하면(undefined/false) 기존 로직 그대로.
-  function drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed){
-    var breedId = state.breed || "golden";
+  // 77번(기다려 대회): override — 유저의 개가 아닌 "다른 개"(대회 상대견 4마리 등)를 같은 캔버스에
+  // 동시에 다른 생김새·색상으로 그려야 할 때 쓰는 선택 인자. {breedId, furA, furADark, furB, furC, furD,
+  // eyeColor, gv, sv, mood, noBadges}를 전달하면 전역 state 대신 이 값들을 사용 — 생략(undefined)하면
+  // 기존처럼 항상 state(유저 자신의 개)를 그대로 읽어, 기존 호출부는 전부 그대로 안전.
+  function drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed, override){
+    var ov = override || null;
+    var breedId = (ov && ov.breedId) ? ov.breedId : (state.breed || "golden");
     // 29번: 믹스견은 전용 실루엣이 없어, 온보딩 때 매칭된 두 견종 중 체구 출처로 뽑힌 쪽의 픽셀 지오메트리를 그대로 재사용
-    if(breedId === "mix" && state.mixGeoBreed){ breedId = state.mixGeoBreed; }
+    if(!ov && breedId === "mix" && state.mixGeoBreed){ breedId = state.mixGeoBreed; }
     var sc = BREED_PXSCALE[breedId] || BREED_PXSCALE.golden;
     var earStyle = sc.earStyle || "floppy";
     var tailStyle = sc.tailStyle || "wag";
     // 70번(20장): 성장 단계별 시각 변수 — 체고(H)에 스케일을 곱해 다리·몸통·머리 등 모든 하위 치수가
     // 비율 그대로 함께 줄어들게 함(다리 길이가 짧아져도 bodyBottom=groundRow-legH 공식 덕에 발은 항상
     // 접지선에 그대로 붙어있음 — 별도 캔버스 좌표 보정 불필요).
-    var gv = growthVisual();
+    var gv = (ov && ov.gv) ? ov.gv : growthVisual();
     // 75번(21장): 누적 스탯 기반 시각 개성화 입력값 — growthVisual()과 나란히, drawPixelDog()의
     // 기존 계산식에 배율/오프셋만 얹는 식으로 소비함(새 그래픽 자산 없음, statVisual() 주석 참고).
-    var sv = statVisual();
+    var sv = (ov && ov.sv) ? ov.sv : statVisual();
     var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     // 민첩성: 다리 비율 소폭 조정
@@ -2678,15 +2788,15 @@
     var headTop = headBottom - headH;
     var headRight = headLeft + headW;
 
-    var mood = moodOf();
+    var mood = (ov && ov.mood) ? ov.mood : moodOf();
     var oy = (mood !== "sleepy" && !reduceMotion() && pixelBobUp) ? -1 : 0;
 
-    var furA = cssVar("--fur-a", "#E7C79A");
-    var furADark = cssVar("--fur-a-dark", "#C79E68");
-    var furB = cssVar("--fur-b", "#B98A5E");
-    var furC = cssVar("--fur-c", "#EDEDED");
-    var furD = cssVar("--fur-d", "#4A4038");
-    var eyeColor = cssVar("--eye-color", furD);
+    var furA = (ov && ov.furA) || cssVar("--fur-a", "#E7C79A");
+    var furADark = (ov && ov.furADark) || cssVar("--fur-a-dark", "#C79E68");
+    var furB = (ov && ov.furB) || cssVar("--fur-b", "#B98A5E");
+    var furC = (ov && ov.furC) || cssVar("--fur-c", "#EDEDED");
+    var furD = (ov && ov.furD) || cssVar("--fur-d", "#4A4038");
+    var eyeColor = (ov && ov.eyeColor) || cssVar("--eye-color", furD);
     // 70번: 찹찹츄는 몸통·귀 털색을 옅게 탈채도(전신에 은은하게) — 코·눈동자(furD/eyeColor)는 그대로
     // 두어 표정이 흐려지지 않게 함. "입가·눈가 회색 톤" 디테일 포인트는 아래 주둥이/눈 블록 근처에서
     // 별도로 반투명 패치를 얹어 표현.
@@ -2856,7 +2966,7 @@
     // 75번(21장): 능력 보유 → 시각적 표식(원칙만 반영) — 취득한 능력(catalog: 접두사) 하나당 머리 위에
     // 작은 점 하나씩, 최대 ABILITY_BADGE_MAX개까지만 그려 화면이 어지러워지지 않게 함. 긍정 능력은
     // 밝은 초록, 부정 능력은 탁한 주황으로 구분(개별 능력별 구체 모양·색 매핑은 다음 라운드 오픈 이슈).
-    var badgeAbilities = ownedCatalogAbilities();
+    var badgeAbilities = (ov && ov.noBadges) ? [] : ownedCatalogAbilities();
     if(badgeAbilities.length){
       var badgeCount = Math.min(badgeAbilities.length, ABILITY_BADGE_MAX);
       var badgeSize = Math.max(1, Math.round(headW*0.09));
@@ -4450,6 +4560,14 @@
    "agilityGame","agilityPhaseBanner","agilityRoundLabel","agilityTimerFill",
    "agilityPawSystem","agilityPawUser","agilityPawDog","agilityDogName",
    "agilityResult","agilityResultText","agilityResultStats","agilityResultClose",
+   // 77번([기다려 대회] 신규): [외출하기]의 "대회/이벤트"(47번) 첫 실제 콘텐츠 — 028번 JS 참고.
+   "competitionVeil","competitionBackBtn","competitionClosed",
+   "competitionTierSelect","competitionTierBeginner","competitionTierIntermediate",
+   "competitionTierAdvanced","competitionTierSpecialist",
+   "competitionTierBeginnerCond","competitionTierIntermediateCond","competitionTierAdvancedCond","competitionTierSpecialistCond",
+   "competitionArena","competitionScene","competitionCanvas","competitionGaugeFill","competitionCycleLabel","competitionWaitBtn",
+   "competitionResult","competitionResultTitle","competitionResultText","competitionResultStats","competitionResultClose",
+   "competitionAnnouncePopup","competitionAnnounceText","competitionAnnounceClose",
    "shopVeil","shopBackBtn","talkShopGrid","shopTabs","shopPageGeneral","shopPageTalk",
    "onboardVeil","nameInput","crateGrid","stepShelter","stepReveal",
    "stepSizeHint","sizeHintWord","sizeHintNext",
@@ -4534,8 +4652,25 @@
   // 전환됨(진단·치료 로직은 027번 파일) — 나머지 2곳(애견카페·펫미용실)은 그대로 준비중 유지.
   el.outingVet.addEventListener("click", openVetVeil);
   el.outingGroom.addEventListener("click", function(){ openOutingPlaceholder("펫미용실"); });
-  // 47번: 대회/이벤트 — 다른 준비중 항목과 달리 별도 화면으로 이동하지 않고, 토스트 멘트만 띄우고 [외출하기] 화면에 머무름
-  el.outingEvent.addEventListener("click", function(){ showMessage("현재 참여 가능한 이벤트나 대회가 없습니다."); });
+  // 77번([기다려 대회] 신규): 47번 당시 "완전한 자리표시자"였던 대회/이벤트 버튼이 첫 실제 콘텐츠를 가짐 —
+  // 어질리티·동물병원과 같은 패턴으로 별도 veil을 엶(028번 파일).
+  el.outingEvent.addEventListener("click", openCompetitionVeil);
+  el.competitionBackBtn.addEventListener("click", closeCompetitionVeil);
+  el.competitionResultClose.addEventListener("click", closeCompetitionVeil);
+  el.competitionAnnounceClose.addEventListener("click", function(){ el.competitionAnnouncePopup.hidden = true; });
+  el.competitionWaitBtn.addEventListener("click", onCompetitionWaitClick);
+  // 77번: 028번 파일에 정의된 상수(COMPETITION_TIER_*)를 여기(007번, 더 이른 로드 순서)서 참조하면
+  // 71번에서 확인된 "최상위 var는 파일 순서를 타지만 function은 안전하다"는 관례를 어기게 되므로,
+  // 문자열 리터럴로 직접 4개를 연결(함수 호출(onCompetitionTierClick)만 사용 — function은 호이스팅 안전).
+  [
+    ["competitionTierBeginner","beginner"],
+    ["competitionTierIntermediate","intermediate"],
+    ["competitionTierAdvanced","advanced"],
+    ["competitionTierSpecialist","specialist"]
+  ].forEach(function(pair){
+    var btn = el[pair[0]], tierId = pair[1];
+    if(btn) btn.addEventListener("click", function(){ onCompetitionTierClick(tierId); });
+  });
 
   // 36번: 능력 도감(테스트용) UI는 불필요한 노출이라 제거함(요청 1번). 단, 이 화면이 쓰던
   // catalogGrant/catalogRevoke/isAbilityOwned 함수 자체는 온보딩 능력 뽑기(catalogGrant 재사용)가
@@ -4881,7 +5016,12 @@
       agility:{ playedToday:false },
       // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한 카운터 — 하루 종료 시퀀스에서 0으로 리셋.
       // [진단받기]는 횟수 제한이 없어 별도 카운터가 필요 없음.
-      vet:{ treatToday:0 }
+      vet:{ treatToday:0 },
+      // 77번([기다려 대회] 신규): playedToday는 하루 종료 시퀀스에서 리셋(4단계 통틀어 하루 1회 —
+      // 사용자 확인). winCounts는 단계 승급 조건("OO대회 N회 이상 1위") 판정용 누적 우승 횟수로,
+      // 하루 종료와 무관하게 이 회차 육성이 끝날 때까지 계속 누적됨(리셋 없음). beginnerAnnounced는
+      // 초급대회 최초 해금 안내 팝업을 "한 번만" 띄우기 위한 플래그.
+      competition:{ playedToday:false, winCounts:{ beginner:0, intermediate:0, advanced:0 }, beginnerAnnounced:false }
     };
   }
 
@@ -5010,6 +5150,11 @@
   // 76번(동물병원 신규, 22장): 도입 전 저장분 마이그레이션 — 오늘 아직 치료 안 받은 상태로 시작.
   if(!state.vet){
     state.vet = { treatToday:0 };
+  }
+  // 77번([기다려 대회] 신규): 도입 전 저장분 마이그레이션 — 오늘 아직 참여 안 한 상태로 시작, 우승
+  // 누적·최초 안내 팝업 플래그도 0/false로 시작(단계 승급은 이 회차 육성에서 새로 쌓아가야 함).
+  if(!state.competition){
+    state.competition = { playedToday:false, winCounts:{ beginner:0, intermediate:0, advanced:0 }, beginnerAnnounced:false };
   }
 
   function stageIndex(bond){
@@ -7831,6 +7976,9 @@
     if(state.agility) state.agility.playedToday = false;
     // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한도 여기서 함께 리셋.
     if(state.vet) state.vet.treatToday = 0;
+    // 77번([기다려 대회] 신규): 참여 가능 횟수(4단계 통틀어 하루 1회)만 리셋 — 승급용 누적 우승
+    // 횟수(winCounts)는 하루가 바뀌어도 계속 유지됨(단계 승급 조건이라 리셋하면 안 됨).
+    if(state.competition) state.competition.playedToday = false;
     // 37번: 성장 단계 전환 확인 — 예전엔 startWalk()의 즉시 하루진행 블록에서 불렀지만, fosterDay가
     // 이제 이 시퀀스에서만 증가하므로 여기로 옮김.
     checkGrowthStageTransition();
@@ -8403,6 +8551,9 @@
     saveState();
     tryFetchWeather();
     if(onsetHint) showMessage(onsetHint);
+    // 77번([기다려 대회] 신규): 초급대회 최초 해금(임시보호 2일차 오전 9시 이후) 안내는 토스트가
+    // 아니라 "확인 눌러야 사라지는" 팝업이라, 위 onsetHint 토스트와는 별개로 처리.
+    checkCompetitionUnlock();
   }, 20000);
 
   // 46번(45번 트리거 설계 수정): 소통버튼 유휴 트리거 — "화면 조작이 TALK_BUTTON_IDLE_MS(30초)
@@ -9327,6 +9478,491 @@
     }
     renderVetTreatGrid();
     saveRenderPulse();
+  }
+  // ===== 77번(신규): [기다려 대회] — [외출하기]의 "대회/이벤트"(47번, 완전한 자리표시자였음) 첫 콘텐츠 =====
+  // 원안(사용자 채팅) + AskUserQuestion 확인 4건을 그대로 반영:
+  //  1) 하루 참여 제한은 4단계(초급/중급/상급/스페셜리스트) 통틀어 하루 1회(확정: 추천안).
+  //  2) 같은 1사이클(3초) 안에서 유저 개와 다른 개가 동시에 탈락하면 공동 순위로 처리(확정: 추천안) —
+  //     단, 유저 개+다른 개 1마리만 남은 결승에서 둘이 동시에 탈락하면 공동 1위로 끝내지 않고 반드시
+  //     재경기(이 사이클의 탈락을 무효화하고 다시 기다려 버튼을 누르게 함)로 1위를 가림(사용자 추가 요청).
+  //  3) 유저 개를 제외한 상대견 4마리에게 A/B/C/D 등급(유저 스탯 대비 가감 비율)을 정확히 1마리씩 고정 배정(확정: 추천안).
+  //  4) 상대견 그래픽은 새로 그리지 않고 기존 9견종 실루엣(drawPixelDog)을 재사용해 견종·모색·눈동자색만 랜덤화(확정: 추천안).
+  // 그 외 아래는 AskUserQuestion으로 확인받지 않고 기존 코드 관례를 확장한 개발팀 판단(완료 보고에 명시):
+  //  - "동시 탈락 시 재경기" 규칙을 5마리>2마리 상태에서 "그 사이클에 살아있는 전원이 동시에 탈락"하는
+  //    일반적인 경우(예: 3마리가 남았는데 셋 다 같은 사이클에 탈락)에도 확장 적용 — 누구도 남지 않는
+  //    상황을 막기 위한 안전장치(사용자가 명시한 "결승 2마리" 규칙의 자연스러운 일반화로 판단).
+  //  - 유저의 개가 탈락한 순간(재경기 대상이 아닌 한) 즉시 게임을 끝내고 결과창을 띄움 — 그 시점에
+  //    아직 살아있는 다른 개들의 최종 순위까지는 굳이 더 시뮬레이션하지 않음(유저 결과만 필요하므로).
+  //  - 단상 위 개는 "앉아있는 형태" 요청이지만, 별도의 착석 포즈 그래픽은 이번 라운드에 새로 그리지
+  //    않고 기존 서있는 픽셀 강아지(drawPixelDog)를 단상 위에 그대로 얹는 방식으로 근사(오픈 이슈).
+  //  - 말풍선 아이콘은 성공/실패와 무관하게 매 시도(1초)마다 순수 랜덤으로 고름(사용자 원문이 특정
+  //    아이콘을 결과와 매칭짓지 않고 나열만 했기 때문).
+  //  - 상대견의 이해력(매칭 확률식의 세 번째 항)은 A~D 등급 배분 대상이 아니라("충성도·수행력만" 명시)
+  //    0~100 균등 랜덤으로 둠. 이름은 이 파일에 새로 만든 이름 목록(COMPETITION_DOG_NAMES)에서 뽑음
+  //    (기존 코드에 재사용할 만한 NPC 이름 풀이 없었음).
+  //  - 게임 내 시간 2시간 진행은 advanceGameTime()을 두 번 호출하는 방식으로 구현 — 기존의 "행동 1회=1시간"
+  //    누적 로직(복댕댕이 2시간마다 뼈다귀+1, 디버프 공격성 2시간마다 +3)이 그대로, 별도 특수처리 없이 재사용됨.
+  //  - 참여 시 뼈다귀·에너지·배부름·유대감(+5)은 [기다려]를 누른 게 아니라 단계를 선택해 참여를 확정하는
+  //    시점에 즉시 적용(어질리티의 "도전 즉시 전부 차감" 관례와 동일한 지점).
+
+  var COMPETITION_ENTRY_BONE_COST = 2;
+  var COMPETITION_ENTRY_ENERGY_COST = 10;
+  var COMPETITION_ENTRY_HUNGER_COST = 10;
+  var COMPETITION_ENTRY_BOND_GAIN = 5;
+  var COMPETITION_WINDOW_START_HOUR = 10;
+  var COMPETITION_WINDOW_END_HOUR = 17; // 미만(오후 4시대까지 참여 가능, 오후 5시부터는 마감)
+
+  var COMPETITION_TIER_ORDER = ["beginner", "intermediate", "advanced", "specialist"];
+  var COMPETITION_TIER_LABELS = { beginner:"초급대회", intermediate:"중급대회", advanced:"상급대회", specialist:"스페셜리스트 대회" };
+  var COMPETITION_TIER_BTN_ID = {
+    beginner:"competitionTierBeginner", intermediate:"competitionTierIntermediate",
+    advanced:"competitionTierAdvanced", specialist:"competitionTierSpecialist"
+  };
+  var COMPETITION_TIER_COND_ID = {
+    beginner:"competitionTierBeginnerCond", intermediate:"competitionTierIntermediateCond",
+    advanced:"competitionTierAdvancedCond", specialist:"competitionTierSpecialistCond"
+  };
+
+  // 순위별 보상표 — 사용자 원안 그대로. bond는 항상 존재(전 순위 공통), loyalty/comprehension은
+  // 낮은 순위(5·4위)엔 일부만 있음. [min,max] 범위는 매 대회마다 그 범위 안에서 새로 굴림.
+  var COMPETITION_REWARDS = {
+    beginner:{
+      5:{ bones:2, bond:[1,1] },
+      4:{ bones:2, loyalty:[1,1], bond:[1,1] },
+      3:{ bones:3, loyalty:[1,1], bond:[1,1], comprehension:[1,1] },
+      2:{ bones:4, loyalty:[1,2], bond:[1,2], comprehension:[1,2] },
+      1:{ bones:5, loyalty:[2,4], bond:[2,4], comprehension:[2,4] }
+    },
+    intermediate:{
+      5:{ bones:5, bond:[2,2] },
+      4:{ bones:5, loyalty:[2,2], bond:[2,2] },
+      3:{ bones:6, loyalty:[2,2], bond:[2,2], comprehension:[2,2] },
+      2:{ bones:8, loyalty:[3,5], bond:[3,5], comprehension:[2,4] },
+      1:{ bones:10, loyalty:[4,6], bond:[4,6], comprehension:[3,5] }
+    },
+    advanced:{
+      5:{ bones:10, bond:[3,3] },
+      4:{ bones:10, loyalty:[3,3], bond:[3,3] },
+      3:{ bones:10, loyalty:[3,3], bond:[3,3], comprehension:[2,2] },
+      2:{ bones:12, loyalty:[4,5], bond:[4,5], comprehension:[4,5] },
+      1:{ bones:15, loyalty:[5,7], bond:[5,7], comprehension:[5,7] }
+    },
+    specialist:{
+      5:{ bones:15, bond:[3,3] },
+      4:{ bones:15, loyalty:[3,3], bond:[3,3] },
+      3:{ bones:15, loyalty:[3,3], bond:[3,3], comprehension:[2,2] },
+      2:{ bones:15, loyalty:[4,6], bond:[4,6], comprehension:[4,6] },
+      1:{ bones:20, loyalty:[6,8], bond:[6,8], comprehension:[6,7] }
+    }
+  };
+
+  // ---- 단계 해금 조건(등급 문자는 006번 파일 GRADE_LETTERS와 동일한 20점 단위 경계) ----
+  function competitionTierUnlocked(tierId){
+    var w = state.competition.winCounts, c = state.core;
+    if(tierId === "beginner") return state.fosterDay >= 2;
+    if(tierId === "intermediate") return w.beginner >= 1 && c.loyalty >= 20 && c.execution >= 20;
+    if(tierId === "advanced") return w.intermediate >= 2 && c.loyalty >= 40 && c.execution >= 40;
+    if(tierId === "specialist") return w.advanced >= 3 && c.loyalty >= 60 && c.execution >= 40;
+    return false;
+  }
+  function competitionTierLockReasons(tierId){
+    var w = state.competition.winCounts, c = state.core, out = [];
+    if(tierId === "beginner"){
+      if(state.fosterDay < 2) out.push("임시보호 2일차부터 참여할 수 있어요");
+    } else if(tierId === "intermediate"){
+      if(w.beginner < 1) out.push("초급대회에서 1위(우승)를 1회 이상 해야 해요");
+      if(c.loyalty < 20) out.push("충성도가 D등급 이상이어야 해요");
+      if(c.execution < 20) out.push("수행력이 D등급 이상이어야 해요");
+    } else if(tierId === "advanced"){
+      if(w.intermediate < 2) out.push("중급대회에서 1위(우승)를 2회 이상 해야 해요");
+      if(c.loyalty < 40) out.push("충성도가 C등급 이상이어야 해요");
+      if(c.execution < 40) out.push("수행력이 C등급 이상이어야 해요");
+    } else if(tierId === "specialist"){
+      if(w.advanced < 3) out.push("상급대회에서 1위(우승)를 3회 이상 해야 해요");
+      if(c.loyalty < 60) out.push("충성도가 B등급 이상이어야 해요");
+      if(c.execution < 40) out.push("수행력이 C등급 이상이어야 해요");
+    }
+    return out;
+  }
+  function competitionTierCondText(tierId){
+    if(tierId === "beginner") return "임시보호 2일차부터 · 누구나 참여 가능";
+    if(tierId === "intermediate") return "초급 1위 1회+ · 충성도 D+ · 수행력 D+";
+    if(tierId === "advanced") return "중급 1위 2회+ · 충성도 C+ · 수행력 C+";
+    if(tierId === "specialist") return "상급 1위 3회+ · 충성도 B+ · 수행력 C+";
+    return "";
+  }
+  function competitionWindowOpenNow(){
+    return state.time.hour >= COMPETITION_WINDOW_START_HOUR && state.time.hour < COMPETITION_WINDOW_END_HOUR;
+  }
+
+  // 76번(동물병원)의 checkDebuffOnsets()와 같은 20초 틱에서 호출됨(024번 파일) — 토스트가 아니라
+  // "확인 눌러야 사라지는" 팝업이라 별도 함수로 분리.
+  function checkCompetitionUnlock(){
+    if(state.competition.beginnerAnnounced) return;
+    if(state.fosterDay < 2 || state.time.hour < 9) return;
+    state.competition.beginnerAnnounced = true;
+    saveState();
+    if(el.competitionAnnounceText) el.competitionAnnounceText.textContent = "이제부터 기다려 대회(초급)에 참여할 수 있어요!";
+    if(el.competitionAnnouncePopup) el.competitionAnnouncePopup.hidden = false;
+  }
+
+  function renderCompetitionTierSelect(){
+    COMPETITION_TIER_ORDER.forEach(function(tierId){
+      var btn = el[COMPETITION_TIER_BTN_ID[tierId]];
+      var cond = el[COMPETITION_TIER_COND_ID[tierId]];
+      if(cond) cond.textContent = competitionTierCondText(tierId);
+      if(btn) btn.classList.toggle("locked", !competitionTierUnlocked(tierId));
+    });
+  }
+
+  function onCompetitionTierClick(tierId){
+    if(competitionMatchRunning) return;
+    var reasons = competitionTierLockReasons(tierId);
+    if(reasons.length){ showMessage(reasons.join(" / ")); return; }
+    if(state.competition.playedToday){ showMessage("오늘은 이미 기다려 대회에 참여했어요."); return; }
+    if(!hasBones(COMPETITION_ENTRY_BONE_COST)){ showMessage(pick(FLAVOR.poor)); return; }
+    startCompetitionMatch(tierId);
+  }
+
+  // ---- 상대견(4마리) 생성 ----
+  var COMPETITION_DOG_NAMES = [
+    "보리","콩이","두부","몽이","초코","마루","해피","토리","루비","까미",
+    "방울","쿠키","별이","봄이","라떼","순두부","알밤","망고","치즈","달이"
+  ];
+  // A: 유저 대비 +2~10%, B: -2~10%(즉 -10%~-2%), C: -8~15%(즉 -15%~-8%), D: +8~15%
+  var COMPETITION_TIER_STAT_RANGE = { A:[0.02,0.10], B:[-0.10,-0.02], C:[-0.15,-0.08], D:[0.08,0.15] };
+  function shuffleArr(a){
+    for(var i=a.length-1; i>0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function rollPct(range){ return range[0] + Math.random()*(range[1]-range[0]); }
+  function competitionRollTierStat(baseVal, tierLetter){
+    var pct = rollPct(COMPETITION_TIER_STAT_RANGE[tierLetter]);
+    return clamp(Math.round(baseVal * (1+pct)), 0, 100);
+  }
+  // 5마리 전부를 시각적으로 같은 조건(중립 성장단계·중립 statVisual)으로 통일해 그려, 유저 개의
+  // 성장단계/스탯 개성화(70·75번)가 이 화면에서만 유독 다른 4마리와 어색하게 도드라지지 않게 함
+  // (원안·사용자 요청에 없던 판단 — 개발팀이 시각적 일관성을 위해 좁게 채운 지점, 오픈 이슈).
+  var COMPETITION_NEUTRAL_SV = {
+    bodyWMult:1, legHMult:1, leanForwardPx:0, earAlertMult:1, postureStraighten:0,
+    eyeSoftMult:1, tailLiftPx:0, furShineAlpha:0, earBackMult:1, eyeSharpMult:1
+  };
+  function competitionPlayerVisual(){
+    var breedId = state.breed || "golden";
+    if(breedId === "mix" && state.mixGeoBreed) breedId = state.mixGeoBreed;
+    return {
+      breedId:breedId,
+      furA: cssVar("--fur-a","#E7C79A"), furADark: cssVar("--fur-a-dark","#C79E68"),
+      furB: cssVar("--fur-b","#B98A5E"), furC: cssVar("--fur-c","#EDEDED"), furD: cssVar("--fur-d","#4A4038"),
+      eyeColor: cssVar("--eye-color","#4A4038"),
+      gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true
+    };
+  }
+  function buildCompetitionOpponents(){
+    var pool = PURE_BREED_ORDER.slice();
+    var tiers = shuffleArr(["A","B","C","D"]);
+    var namesPool = COMPETITION_DOG_NAMES.slice();
+    var out = [];
+    for(var i=0; i<4; i++){
+      var breedId = pool.length ? pool.splice(Math.floor(Math.random()*pool.length), 1)[0] : "golden";
+      var coat = rollTrait(COAT_PALETTES[breedId] || COAT_PALETTES.golden);
+      var eye = rollTrait(EYE_COLORS[breedId] || EYE_COLORS.golden);
+      var name = namesPool.length ? namesPool.splice(Math.floor(Math.random()*namesPool.length), 1)[0] : "댕댕이";
+      var tierLetter = tiers[i];
+      out.push({
+        key:"npc"+i, isPlayer:false, name:name, tierLetter:tierLetter,
+        loyalty: competitionRollTierStat(state.core.loyalty, tierLetter),
+        execution: competitionRollTierStat(state.core.execution, tierLetter),
+        comprehension: Math.floor(Math.random()*101),
+        visual:{
+          breedId:breedId, furA:coat.fur.a, furADark:coat.fur.aDark, furB:coat.fur.b,
+          furC: cssVar("--fur-c","#EDEDED"), furD: cssVar("--fur-d","#4A4038"), eyeColor: eye.hex,
+          gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true
+        },
+        eliminated:false, rank:null, bubble:null
+      });
+    }
+    return out;
+  }
+
+  // ---- 성공/실패 판정 ----
+  // (충성도/5 + 수행력/5 + 이해력/10 + 40)%, 하한 30%·상한 90%(사용자 원안 그대로).
+  function competitionSuccessChance(c){
+    var pct = (c.loyalty/5) + (c.execution/5) + (c.comprehension/10) + 40;
+    return clamp(pct, 30, 90) / 100;
+  }
+
+  // ---- 보상 적용 ----
+  function rollRange(r){ if(!r) return 0; return r[0] + Math.floor(Math.random()*(r[1]-r[0]+1)); }
+  function applyCompetitionReward(tierId, rank){
+    var table = COMPETITION_REWARDS[tierId] || COMPETITION_REWARDS.beginner;
+    var spec = table[rank] || table[5];
+    var depressionPenalty = isAbilityOwned("depression") ? 0.9 : 1;
+    var applied = {};
+    var bonesGain = spec.bones || 0;
+    if(bonesGain) state.coins += bonesGain;
+    ["loyalty","comprehension"].forEach(function(key){
+      if(!spec[key]) return;
+      var raw = rollRange(spec[key]) * depressionPenalty;
+      var gain = Math.round(raw);
+      if(gain <= 0) return;
+      // 76번(22장) 디버프 게이팅과 growthMaxStats 클램프를 어질리티(74번)와 동일한 방식으로 적용.
+      var gate = applyDebuffGate("core." + key, gain);
+      gain = Math.round(gate.amount);
+      if(gain <= 0) return;
+      var cap = (state.growthMaxStats && typeof state.growthMaxStats[key] === "number") ? state.growthMaxStats[key] : 100;
+      var before = state.core[key];
+      state.core[key] = clamp(state.core[key] + gain, 0, cap);
+      var actual = state.core[key] - before;
+      if(actual > 0) applied["core." + key] = actual;
+    });
+    if(spec.bond){
+      var bondGain = Math.round(rollRange(spec.bond) * depressionPenalty);
+      if(bondGain > 0){
+        var beforeBond = state.life.bond;
+        bumpLifeBond(bondGain);
+        var actualBond = state.life.bond - beforeBond;
+        if(actualBond !== 0) applied["life.bond"] = actualBond;
+      }
+    }
+    return { applied:applied, bones:bonesGain };
+  }
+
+  // ---- 시상대(단상) 캔버스 렌더링 ----
+  var COMPETITION_CANVAS_W = 290, COMPETITION_CANVAS_H = 108;
+  var COMPETITION_GROUND_ROW = 90;
+  var COMPETITION_PODIUM_W = 46, COMPETITION_PODIUM_H = 10;
+  // 사용자 지정: 단상 5개 색은 빨강/주황/노랑/초록/파랑 — 항상 이 순서로 화면 왼쪽부터 고정되고,
+  // "어느 개가 어느 색 위에 서는지"만 매 대회마다 랜덤(슬롯 배정, contestants[i].slot).
+  var COMPETITION_PODIUM_COLORS = ["#D9534F", "#E08A3C", "#E4C93E", "#5FA85F", "#4A86C8"];
+
+  function competitionLaneCenterX(slot){
+    var laneW = COMPETITION_CANVAS_W / 5;
+    return Math.round(laneW*slot + laneW/2);
+  }
+  function competitionOffsetXForSlot(slot){
+    var cx = Math.round(PX_W/2) + 2; // drawPixelDog() 자체의 중심 좌표 관례(002번)
+    return competitionLaneCenterX(slot) - cx;
+  }
+  function drawCompetitionScene(){
+    if(!el.competitionCanvas || !el.competitionCanvas.getContext) return;
+    var ctx = el.competitionCanvas.getContext("2d");
+    if(!ctx) return;
+    ctx.clearRect(0, 0, COMPETITION_CANVAS_W, COMPETITION_CANVAS_H);
+    var grad = ctx.createLinearGradient(0, 0, 0, COMPETITION_GROUND_ROW);
+    grad.addColorStop(0, cssVar("--sky", "#BFE0EE"));
+    grad.addColorStop(1, "#E8F3DC");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, COMPETITION_CANVAS_W, COMPETITION_GROUND_ROW);
+    ctx.fillStyle = cssVar("--moss", "#9CB88C");
+    ctx.fillRect(0, COMPETITION_GROUND_ROW, COMPETITION_CANVAS_W, COMPETITION_CANVAS_H - COMPETITION_GROUND_ROW);
+
+    if(!CM) return;
+    for(var slot=0; slot<5; slot++){
+      var laneCx = competitionLaneCenterX(slot);
+      ctx.fillStyle = COMPETITION_PODIUM_COLORS[slot];
+      ctx.fillRect(laneCx - COMPETITION_PODIUM_W/2, COMPETITION_GROUND_ROW, COMPETITION_PODIUM_W, COMPETITION_PODIUM_H);
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.fillRect(laneCx - COMPETITION_PODIUM_W/2, COMPETITION_GROUND_ROW, COMPETITION_PODIUM_W, 2);
+
+      var c = null;
+      for(var k=0; k<CM.contestants.length; k++){
+        if(CM.contestants[k].slot === slot){ c = CM.contestants[k]; break; }
+      }
+      if(!c || c.eliminated) continue;
+
+      var offsetX = competitionOffsetXForSlot(slot);
+      // 77번: 단상 위 "앉아있는" 요청은 새 착석 포즈 그래픽을 그리지 않고 기존 서있는 픽셀 강아지를
+      // 그대로 얹는 방식으로 근사(오픈 이슈로 명시).
+      drawPixelDog(ctx, COMPETITION_GROUND_ROW, offsetX, false, c.visual);
+
+      ctx.textAlign = "center";
+      ctx.font = "8px sans-serif";
+      ctx.fillStyle = "#2E2822";
+      ctx.fillText(c.name, laneCx, COMPETITION_GROUND_ROW + COMPETITION_PODIUM_H + 9);
+
+      if(c.bubble){
+        var bubbleY = COMPETITION_GROUND_ROW - 34;
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.beginPath();
+        ctx.arc(laneCx, bubbleY, 8, 0, Math.PI*2);
+        ctx.fill();
+        ctx.font = "10px sans-serif";
+        ctx.textBaseline = "middle";
+        ctx.fillText(c.bubble, laneCx, bubbleY + 1);
+        ctx.textBaseline = "alphabetic";
+      }
+    }
+  }
+  function competitionSetGaugePct(pct){
+    if(el.competitionGaugeFill) el.competitionGaugeFill.style.width = clamp(pct, 0, 100) + "%";
+  }
+
+  // ---- 경기 진행 ----
+  var COMPETITION_BUBBLE_ICONS = ["❤️", "🦴", "🐾", "😊", "❓", "⚠️", "❗"];
+  var competitionMatchRunning = false;
+  var CM = null; // 현재 진행 중인 경기 상태
+
+  function competitionAssignRanks(group){
+    // 사용자 확정: "같은 사이클 안에서 동시 탈락"은 공동 순위 — 그룹이 소비하는 등수 구간 중
+    // 더 높은(더 좋은) 등수를 그룹 전원에게 부여(예: 2마리 동시 탈락이 4·5위 구간을 소비하면 둘 다 4위).
+    var n = group.length;
+    var consumed = CM.rankPool.splice(0, n);
+    var rank = Math.min.apply(null, consumed);
+    group.forEach(function(c){ c.eliminated = true; c.rank = rank; });
+  }
+
+  async function runCompetitionCycle(){
+    if(!CM || CM.finished) return;
+    el.competitionWaitBtn.disabled = true;
+    competitionSetGaugePct(0);
+    var aliveBefore = CM.contestants.filter(function(c){ return !c.eliminated; });
+    var isFinalTwo = aliveBefore.length === 2;
+    if(el.competitionCycleLabel) el.competitionCycleLabel.textContent = "생존 " + aliveBefore.length + "마리 남음";
+    var failedThisCycle = [];
+
+    for(var tick=1; tick<=3; tick++){
+      await wait(1000);
+      competitionSetGaugePct((tick/3)*100);
+      aliveBefore.forEach(function(c){
+        if(failedThisCycle.indexOf(c) !== -1) return;
+        c.bubble = pick(COMPETITION_BUBBLE_ICONS);
+      });
+      aliveBefore.forEach(function(c){
+        if(failedThisCycle.indexOf(c) !== -1) return;
+        if(Math.random() >= competitionSuccessChance(c)) failedThisCycle.push(c);
+      });
+      drawCompetitionScene();
+      if(failedThisCycle.indexOf(CM.player) !== -1) break; // 유저 개가 탈락한 순간 즉시 중단(재경기 판정은 아래에서)
+    }
+    aliveBefore.forEach(function(c){ c.bubble = null; });
+
+    // 결승(2마리)에서 둘 다 이번 사이클에 탈락 → 사용자 추가 요청: 재경기(이번 탈락은 무효화).
+    if(isFinalTwo && failedThisCycle.length === 2){
+      drawCompetitionScene();
+      showMessage("무승부! 다시 한 번 기다려볼까요?");
+      el.competitionWaitBtn.disabled = false;
+      return;
+    }
+    // 개발팀 판단(오픈 이슈로 명시): 결승이 아니어도 "이번 사이클에 살아있던 전원이 함께 탈락"하면
+    // 아무도 남지 않게 되므로, 같은 원칙(재경기)으로 안전하게 처리.
+    if(aliveBefore.length > 2 && failedThisCycle.length === aliveBefore.length){
+      drawCompetitionScene();
+      showMessage("모두 실패! 다시 한 번 기다려볼까요?");
+      el.competitionWaitBtn.disabled = false;
+      return;
+    }
+
+    if(failedThisCycle.length) competitionAssignRanks(failedThisCycle);
+    drawCompetitionScene();
+
+    var aliveAfter = CM.contestants.filter(function(c){ return !c.eliminated; });
+    if(aliveAfter.length <= 1){
+      if(aliveAfter.length === 1) aliveAfter[0].rank = 1;
+      finishCompetitionMatch();
+      return;
+    }
+    if(CM.player.eliminated){
+      finishCompetitionMatch();
+      return;
+    }
+    if(el.competitionCycleLabel) el.competitionCycleLabel.textContent = "생존 " + aliveAfter.length + "마리 남음 · 다음 기다려를 눌러보세요";
+    el.competitionWaitBtn.disabled = false;
+  }
+
+  function onCompetitionWaitClick(){
+    if(!CM || CM.finished || el.competitionWaitBtn.disabled) return;
+    runCompetitionCycle();
+  }
+
+  function finishCompetitionMatch(){
+    CM.finished = true;
+    competitionMatchRunning = false;
+    var player = CM.player;
+    var rank = player.rank;
+    if(rank === 1){
+      if(CM.tierId === "beginner") state.competition.winCounts.beginner++;
+      else if(CM.tierId === "intermediate") state.competition.winCounts.intermediate++;
+      else if(CM.tierId === "advanced") state.competition.winCounts.advanced++;
+      // 스페셜리스트는 그 위의 승급 단계가 없어 조건 판정에는 쓰이지 않지만, 향후 확장을 대비해 카운트만 남김.
+    }
+    // 사용자 원안: "게임 한 번 참여시 시간 2시간 진행" — advanceGameTime()을 두 번 호출해 기존
+    // 부수효과(복댕댕이 2시간마다 뼈다귀+1, 디버프 공격성 2시간마다 +3)를 그대로 재사용.
+    advanceGameTime();
+    advanceGameTime();
+    var reward = applyCompetitionReward(CM.tierId, rank);
+    saveState();
+    render();
+
+    el.competitionArena.hidden = true;
+    el.competitionResult.hidden = false;
+    el.competitionResultTitle.textContent = COMPETITION_TIER_LABELS[CM.tierId] + " 결과";
+    el.competitionResultText.textContent = (player.name || "댕댕이") + josaIGa(player.name) + " " + rank + "위를 했어요! (뼈다귀 +" + reward.bones + ")";
+    renderWalkSummaryStats(el.competitionResultStats, reward.applied);
+  }
+
+  function startCompetitionMatch(tierId){
+    spendBones(COMPETITION_ENTRY_BONE_COST);
+    state.life.independence = clamp(state.life.independence - COMPETITION_ENTRY_ENERGY_COST, 0, 100);
+    state.life.hunger = clamp(state.life.hunger - COMPETITION_ENTRY_HUNGER_COST, 0, 100);
+    bumpLifeBond(COMPETITION_ENTRY_BOND_GAIN);
+    state.competition.playedToday = true;
+    saveState();
+    render();
+
+    var opponents = buildCompetitionOpponents();
+    var player = {
+      key:"player", isPlayer:true, name: state.name || "댕댕이",
+      loyalty: state.core.loyalty, execution: state.core.execution, comprehension: state.core.comprehension,
+      visual: competitionPlayerVisual(), eliminated:false, rank:null, bubble:null
+    };
+    var contestants = [player].concat(opponents);
+    var slots = shuffleArr([0, 1, 2, 3, 4]);
+    contestants.forEach(function(c, i){ c.slot = slots[i]; });
+
+    CM = { tierId:tierId, contestants:contestants, player:player, rankPool:[5, 4, 3, 2, 1], finished:false };
+    competitionMatchRunning = true;
+
+    el.competitionTierSelect.hidden = true;
+    el.competitionClosed.hidden = true;
+    el.competitionResult.hidden = true;
+    el.competitionArena.hidden = false;
+    competitionSetGaugePct(0);
+    if(el.competitionCycleLabel) el.competitionCycleLabel.textContent = "생존 5마리 남음";
+    el.competitionWaitBtn.disabled = false;
+    drawCompetitionScene();
+  }
+
+  // ---- veil 열기/닫기 ----
+  function openCompetitionVeil(){
+    if(CM && !CM.finished && competitionMatchRunning){
+      el.competitionTierSelect.hidden = true;
+      el.competitionClosed.hidden = true;
+      el.competitionArena.hidden = false;
+      el.competitionResult.hidden = true;
+      openVeil(el.competitionVeil);
+      return;
+    }
+    el.competitionArena.hidden = true;
+    if(!(CM && CM.finished)) el.competitionResult.hidden = true;
+    if(!competitionWindowOpenNow()){
+      el.competitionClosed.hidden = false;
+      el.competitionTierSelect.hidden = true;
+    } else if(!(CM && CM.finished)){
+      el.competitionClosed.hidden = true;
+      el.competitionTierSelect.hidden = false;
+      renderCompetitionTierSelect();
+    }
+    openVeil(el.competitionVeil);
+  }
+  function closeCompetitionVeil(){
+    if(competitionMatchRunning) return; // 어질리티(74번)와 같은 원칙 — 경기 진행 중엔 뒤로가기 무시
+    CM = null;
+    closeVeil(el.competitionVeil);
+    maybeTriggerDayEnd();
   }
 })();
 </script>

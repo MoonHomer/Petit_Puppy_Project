@@ -63,8 +63,25 @@
   // 전환됨(진단·치료 로직은 027번 파일) — 나머지 2곳(애견카페·펫미용실)은 그대로 준비중 유지.
   el.outingVet.addEventListener("click", openVetVeil);
   el.outingGroom.addEventListener("click", function(){ openOutingPlaceholder("펫미용실"); });
-  // 47번: 대회/이벤트 — 다른 준비중 항목과 달리 별도 화면으로 이동하지 않고, 토스트 멘트만 띄우고 [외출하기] 화면에 머무름
-  el.outingEvent.addEventListener("click", function(){ showMessage("현재 참여 가능한 이벤트나 대회가 없습니다."); });
+  // 77번([기다려 대회] 신규): 47번 당시 "완전한 자리표시자"였던 대회/이벤트 버튼이 첫 실제 콘텐츠를 가짐 —
+  // 어질리티·동물병원과 같은 패턴으로 별도 veil을 엶(028번 파일).
+  el.outingEvent.addEventListener("click", openCompetitionVeil);
+  el.competitionBackBtn.addEventListener("click", closeCompetitionVeil);
+  el.competitionResultClose.addEventListener("click", closeCompetitionVeil);
+  el.competitionAnnounceClose.addEventListener("click", function(){ el.competitionAnnouncePopup.hidden = true; });
+  el.competitionWaitBtn.addEventListener("click", onCompetitionWaitClick);
+  // 77번: 028번 파일에 정의된 상수(COMPETITION_TIER_*)를 여기(007번, 더 이른 로드 순서)서 참조하면
+  // 71번에서 확인된 "최상위 var는 파일 순서를 타지만 function은 안전하다"는 관례를 어기게 되므로,
+  // 문자열 리터럴로 직접 4개를 연결(함수 호출(onCompetitionTierClick)만 사용 — function은 호이스팅 안전).
+  [
+    ["competitionTierBeginner","beginner"],
+    ["competitionTierIntermediate","intermediate"],
+    ["competitionTierAdvanced","advanced"],
+    ["competitionTierSpecialist","specialist"]
+  ].forEach(function(pair){
+    var btn = el[pair[0]], tierId = pair[1];
+    if(btn) btn.addEventListener("click", function(){ onCompetitionTierClick(tierId); });
+  });
 
   // 36번: 능력 도감(테스트용) UI는 불필요한 노출이라 제거함(요청 1번). 단, 이 화면이 쓰던
   // catalogGrant/catalogRevoke/isAbilityOwned 함수 자체는 온보딩 능력 뽑기(catalogGrant 재사용)가

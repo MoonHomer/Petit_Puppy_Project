@@ -126,6 +126,9 @@
     saveState();
     tryFetchWeather();
     if(onsetHint) showMessage(onsetHint);
+    // 77번([기다려 대회] 신규): 초급대회 최초 해금(임시보호 2일차 오전 9시 이후) 안내는 토스트가
+    // 아니라 "확인 눌러야 사라지는" 팝업이라, 위 onsetHint 토스트와는 별개로 처리.
+    checkCompetitionUnlock();
   }, 20000);
 
   // 46번(45번 트리거 설계 수정): 소통버튼 유휴 트리거 — "화면 조작이 TALK_BUTTON_IDLE_MS(30초)

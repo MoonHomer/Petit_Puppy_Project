@@ -101,6 +101,9 @@
     if(state.agility) state.agility.playedToday = false;
     // 76번(동물병원 신규, 22장): [치료하기] 하루 최대 3회 제한도 여기서 함께 리셋.
     if(state.vet) state.vet.treatToday = 0;
+    // 77번([기다려 대회] 신규): 참여 가능 횟수(4단계 통틀어 하루 1회)만 리셋 — 승급용 누적 우승
+    // 횟수(winCounts)는 하루가 바뀌어도 계속 유지됨(단계 승급 조건이라 리셋하면 안 됨).
+    if(state.competition) state.competition.playedToday = false;
     // 37번: 성장 단계 전환 확인 — 예전엔 startWalk()의 즉시 하루진행 블록에서 불렀지만, fosterDay가
     // 이제 이 시퀀스에서만 증가하므로 여기로 옮김.
     checkGrowthStageTransition();

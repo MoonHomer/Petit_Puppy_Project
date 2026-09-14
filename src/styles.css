@@ -1542,7 +1542,7 @@
     font-variant-numeric:tabular-nums;
   }
   .agility-timer-track{
-    flex:1; height:8px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); overflow:hidden;
+    position:relative; flex:1; height:8px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); overflow:hidden;
   }
   .agility-timer-fill{
     height:100%; width:100%; border-radius:999px;
@@ -1578,6 +1578,45 @@
   .agility-result{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
   .agility-result h3{ margin:0; font-size:1rem; }
   .agility-result p{ margin:0; font-size:0.84rem; color:var(--ink-soft); line-height:1.5; }
+
+  /* ---- 77번: [기다려 대회] — 어질리티 연습장(74번)의 화면 큰 구성(veil 안 scene/게이지/결과)을
+     그대로 따르되, 위아래 여백을 최대한 줄여 시상대 5세트가 꽉 차 보이도록 함(028번 JS). ---- */
+  .competition-card{ gap:10px; }
+  .competition-closed{ text-align:center; padding:24px 8px; }
+  .competition-tiers{ display:flex; flex-direction:column; gap:10px; }
+  .competition-tier-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .competition-tier{
+    display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
+    background:var(--card-2); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; cursor:pointer; transition:opacity .12s ease, background .12s ease;
+  }
+  .competition-tier:active{ transform:translateY(1px); }
+  .competition-tier .tier-name{ font-family:var(--font-display); font-weight:700; font-size:0.9rem; color:var(--ink); }
+  .competition-tier .tier-cond{ font-size:0.7rem; color:var(--ink-faint); line-height:1.4; }
+  /* 잠긴 단계는 HTML disabled가 아니라 회색 스타일만 입힘 — 눌러보면 부족한 조건을 알려줘야 하므로
+     (사용자 지시) 클릭 자체는 계속 받아야 함. */
+  .competition-tier.locked{ opacity:0.5; background:var(--card); }
+  .competition-tier.locked .tier-name{ color:var(--ink-faint); }
+  .competition-arena{ display:flex; flex-direction:column; gap:6px; }
+  .competition-scene{
+    position:relative; aspect-ratio:290/108; overflow:hidden;
+    border-radius:14px; border:1px solid var(--line);
+  }
+  .competition-scene-canvas{
+    position:absolute; inset:0; display:block; width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  .competition-cycle-label{
+    margin:0; text-align:center; font-family:var(--font-display); font-size:0.8rem;
+    font-weight:600; color:var(--ink-soft);
+  }
+  /* 3초 게이지 위에 1초·2초·3초 지점을 표시하는 작은 발바닥 눈금 — agility-timer-track을 그대로 재사용. */
+  .competition-gauge-tick{
+    position:absolute; top:50%; transform:translate(-50%,-50%); font-size:0.62rem; pointer-events:none;
+  }
+  .competition-result{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
+  .competition-result h3{ margin:0; font-size:1rem; }
+  .competition-result p{ margin:0; font-size:0.84rem; color:var(--ink-soft); line-height:1.5; }
 
   /* ---- 산책(walk) 세션 ---- */
   .walk-card{ gap:10px; }

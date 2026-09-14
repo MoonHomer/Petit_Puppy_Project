@@ -338,6 +338,61 @@
   </div>
 </div>
 
+<!-- 77번([기다려 대회] 신규): [외출하기]의 "대회/이벤트"(47번, 완전한 자리표시자였음) 첫 실제 콘텐츠.
+     초급/중급/상급/스페셜리스트 4단계 — 시상대(단상) 5개 위에 유저 개+상대견 4마리가 랜덤 배치되고,
+     [기다려] 버튼을 누르면 3초 게이지가 흐르며 1초마다 각 개별 성공/실패 판정, 실패하면 탈락(단상은
+     남고 개만 사라짐), 마지막 1마리가 남을 때까지 반복하는 서바이벌 형식(028번 JS). -->
+<div class="veil" id="competitionVeil">
+  <div class="onboard subscreen competition-card">
+    <h2>기다려 대회</h2>
+    <div class="competition-closed" id="competitionClosed" hidden>
+      <p class="attach-desc">준비 중, 오전 10시~오후5시에 참여가능해요!</p>
+    </div>
+    <div class="competition-tiers" id="competitionTierSelect" hidden>
+      <p class="attach-desc">단계를 선택해서 [기다려] 대회에 도전해봐요! (참여 시 뼈다귀 2개, 하루 1회)</p>
+      <div class="competition-tier-grid">
+        <button type="button" class="competition-tier" id="competitionTierBeginner" data-tier="beginner">
+          <span class="tier-name">초급대회</span>
+          <span class="tier-cond" id="competitionTierBeginnerCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierIntermediate" data-tier="intermediate">
+          <span class="tier-name">중급대회</span>
+          <span class="tier-cond" id="competitionTierIntermediateCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierAdvanced" data-tier="advanced">
+          <span class="tier-name">상급대회</span>
+          <span class="tier-cond" id="competitionTierAdvancedCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierSpecialist" data-tier="specialist">
+          <span class="tier-name">스페셜리스트 대회</span>
+          <span class="tier-cond" id="competitionTierSpecialistCond"></span>
+        </button>
+      </div>
+    </div>
+    <div class="competition-arena" id="competitionArena" hidden>
+      <div class="competition-scene" id="competitionScene" aria-hidden="true">
+        <canvas class="competition-scene-canvas" id="competitionCanvas" width="290" height="108"></canvas>
+      </div>
+      <p class="competition-cycle-label" id="competitionCycleLabel"></p>
+      <div class="agility-round-row">
+        <div class="agility-timer-track"><div class="agility-timer-fill" id="competitionGaugeFill"></div>
+          <span class="competition-gauge-tick" style="left:32%"></span>
+          <span class="competition-gauge-tick" style="left:65%"></span>
+          <span class="competition-gauge-tick" style="left:97%"></span>
+        </div>
+      </div>
+      <button type="button" class="start-btn" id="competitionWaitBtn">기다려</button>
+    </div>
+    <div class="competition-result" id="competitionResult" hidden>
+      <h3 id="competitionResultTitle">대회 결과</h3>
+      <p id="competitionResultText"></p>
+      <div class="walk-summary-stats" id="competitionResultStats"></div>
+      <button class="start-btn" id="competitionResultClose">확인</button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="competitionBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
 <div class="veil" id="placeholderVeil">
   <div class="onboard subscreen placeholder-card">
     <h2 id="placeholderTitle">준비중</h2>
@@ -516,6 +571,17 @@
     <h3 id="descPopupTitle"></h3>
     <p id="descPopupText"></p>
     <button type="button" class="start-btn" id="descPopupClose">닫기</button>
+  </div>
+</div>
+
+<!-- 77번([기다려 대회] 신규): 초급대회 최초 해금 시(임시보호 2일차 오전 9시 이후) 딱 한 번만 뜨는
+     안내 팝업 — descPopup과 같은 오버레이 구조를 재사용하지만, 배경(veil) 클릭으로는 닫히지 않고
+     오직 [확인] 버튼을 눌러야만 사라짐(사용자 지시: "유저가 확인 눌러야 사라지는 방식"). -->
+<div class="desc-popup" id="competitionAnnouncePopup" hidden>
+  <div class="desc-popup-box">
+    <h3>🏆 기다려 대회</h3>
+    <p id="competitionAnnounceText"></p>
+    <button type="button" class="start-btn" id="competitionAnnounceClose">확인</button>
   </div>
 </div>
 
