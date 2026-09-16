@@ -139,6 +139,28 @@
       note:"시츄로 시작하면 50% 확률로 부여돼요. 스트레스 상승 속도 보정은 고정 수치 효과가 아니라 다음 라운드로 미룹니다.",
       onboardRoll:function(){ return state.breed === "shihtzu" ? 0.5 : 0; }
     },
+    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 53~55행): 신규 견종 3종(몰티즈·푸들·비숑프리제) 전용 고유능력.
+    // 셋 다 효과가 "배율"이거나 "조건부 시너지"거나 "낮은 확률의 런타임 이벤트"라, 다른 견종들의 유사
+    // 사례(든든한 파트너의 이벤트 확률 보정, 세상만사 평화로워의 상승속도 완화 등)와 같은 이유로 실제
+    // 배율/이벤트 파이프라인은 아직 안 걸려있음 — 정의만 등록해두고 다음 라운드로 미룸(오픈 이슈).
+    {
+      id:"aloofOne", name:"새침데기", category:"innateUnique", tone:"neutral", positive:true, breed:"maltese",
+      desc:"친화력 상승효과 ×0.7, 충성도 상승효과 ×1.3",
+      note:"몰티즈로 시작하면 50% 확률로 부여돼요. 몰티즈 특유의 '폐쇄적 사회성'(아무나 안 좋아하지만 마음 준 사람껜 끝까지 곁을 지킴, 24장 리서치 근거) 반영. 친화력/충성도가 오르는 지점마다 이 배율을 걸려면 gain 파이프라인 전체를 손봐야 해서, 이번엔 정의만 등록하고 실제 배율 적용은 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "maltese" ? 0.5 : 0; }
+    },
+    {
+      id:"emotionReader", name:"마음을 읽어요", category:"innateUnique", tone:"positive", positive:true, breed:"poodle",
+      desc:"견생만족도 스트레스가 높은 상태일 때 함께 있으면 유대감 획득량 증가(조건부 시너지, 구체 수치 미정)",
+      note:"푸들(소형/미디엄/스탠다드 공통)로 시작하면 50% 확률로 부여돼요. 강형욱 훈련사가 '주인의 감정을 파악하는 데 최고'라고 평가한 푸들 특유의 정서 감지 능력 반영(24장 리서치 근거). 정확한 배율 자체가 원안 엑셀에 '미정'으로 명시돼 있어, 스트레스 연동 시너지는 수치가 확정되는 다음 라운드에 구현합니다.",
+      onboardRoll:function(){ return state.breed === "poodle" ? 0.5 : 0; }
+    },
+    {
+      id:"bichonTime", name:"비숑타임!", category:"innateUnique", tone:"neutral", positive:true, breed:"bichon",
+      desc:"낮은 확률로 산책·휴식 중 폭발적 에너지 이벤트 발생 — 민첩성·근력 큰 폭 상승과 함께 스트레스도 소폭 상승",
+      note:"비숑프리제로 시작하면 50% 확률로 부여돼요. 실제 비숑프리제 보호자들 사이에서 '비숑타임'이라 불리는 폭발적 에너지 분출 현상을 그대로 능력화(24장 리서치 근거). '낮은 확률'·'큰 폭'의 정확한 수치가 아직 없어, 산책·휴식 틱에 실제 이벤트를 발동시키는 로직은 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "bichon" ? 0.5 : 0; }
+    },
     {
       id:"strangerShy", name:"낯가림쟁이", category:"acquiredCommon", tone:"negative", positive:false,
       desc:"산책 중 \"새로운 친구 만남\" 계열 이벤트 발생확률 -15%p, 친화력 -3",

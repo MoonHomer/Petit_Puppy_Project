@@ -137,6 +137,13 @@
     el.revealPassive.textContent = rolledPassive.name;
     el.revealPassive.className = "rv " + (rolledPassive.positive ? "positive" : "negative");
     el.revealFlavor.textContent = breed.desc + " " + rolledPersonality.flavor + " " + rolledPassive.flavor;
+    if(breedId === "poodle"){
+      // 78번(24장): 스탯·고유능력은 3사이즈 공통이라 여기선 그래픽 크기 클래스만 균등 1/3로 굴림.
+      chosenPoodleSize = POODLE_SIZE_CLASSES[Math.floor(Math.random()*POODLE_SIZE_CLASSES.length)];
+      el.revealFlavor.textContent += " 이번엔 " + POODLE_SIZE_LABEL[chosenPoodleSize] + " 사이즈로 만났어요.";
+    } else {
+      chosenPoodleSize = null;
+    }
     if(breedId === "mix"){
       // 29번: 믹스견은 등록된 견종 중 두 마리를 무작위로 매칭 — 그 중 하나를 체구(크기) 출처로 다시 뽑음
       var pool = PURE_BREED_ORDER.slice();

@@ -21,6 +21,8 @@
       // 29번: 믹스견(시고르자브)일 때만 채워짐 — 매칭된 두 견종, 그리고 픽셀 실루엣에 쓸 체구 출처 견종
       mixParents:null,
       mixGeoBreed:null,
+      // 78번(24장): 푸들일 때만 채워짐 — "small"/"medium"/"standard" 중 하나(breedSizeScale() 참고).
+      breedSizeClass:null,
       createdTs: now,
       lastTs: now,
       onboarded:false,
@@ -96,6 +98,8 @@
   // 29번(믹스견) 도입 전 저장분 마이그레이션
   if(state.mixParents === undefined){ state.mixParents = null; }
   if(state.mixGeoBreed === undefined){ state.mixGeoBreed = null; }
+  // 78번(24장, 푸들 크기 클래스) 도입 전 저장분 마이그레이션
+  if(state.breedSizeClass === undefined){ state.breedSizeClass = null; }
   // 60번(지역 전담 능력) 도입 전 저장분 마이그레이션
   if(!state.regionWalkCounts){ state.regionWalkCounts = {}; }
   if(state.regionAbilityWalkGrantCount === undefined){ state.regionAbilityWalkGrantCount = 0; }

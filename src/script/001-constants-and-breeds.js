@@ -56,6 +56,26 @@
       // 긴 털은 손이 많이 가고, 차분한 시간에 유독 행복해하며, 체구가 작아 금방 지치는 편
       mult:{ cleanDrain:1.2, happinessGainCalm:1.15, energyDrain:1.1 }
     },
+    // 78번(24장): 견종 3종 추가 — 몰티즈·푸들·비숑프리제. mult 배율은 문서에 정확한 수치가 없어
+    // 리서치 근거(desc 참고)에 맞춰 개발팀이 기존 견종들과 같은 결로 채움(오픈 이슈, 실플레이 후 조정 가능).
+    maltese: {
+      name:"몰티즈", desc:"아무나 안 좋아하지만 마음을 준 사람껜 끝까지 곁을 지키는, 작고 예민한 아이",
+      fur:{a:"#FAF8F2", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D8D2BE"},
+      // 폐쇄적 사회성(아무나에게 마음을 안 여는 편) → 유대감 형성이 다소 느긋, 체구가 작아 금방 지치는 편
+      mult:{ cleanDrain:1.2, energyDrain:1.15, bondGain:0.9 }
+    },
+    poodle: {
+      name:"푸들", desc:"주인의 감정을 가장 잘 읽는, 소형·미디엄·스탠다드 세 크기 중 하나로 만나는 영리한 아이",
+      fur:{a:"#E7A55C", aDark:"#C1813C", b:"#D89249", bDark:"#AD7230"},
+      // 사람 마음을 잘 읽고 활동적일 때 특히 즐거워함, 곱슬 털은 손질이 자주 필요한 편
+      mult:{ cleanDrain:1.15, bondGain:1.1, happinessGainActive:1.1 }
+    },
+    bichon: {
+      name:"비숑프리제", desc:"누구에게나 반갑게 다가가는, 곱슬곱슬 뭉게구름 같은 털의 왕성한 먹보",
+      fur:{a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC"},
+      // 왕성한 식욕과 활발함("비숑타임"), 곱슬 털은 손질이 자주 필요한 편
+      mult:{ cleanDrain:1.15, hungerDrain:1.15, happinessGainActive:1.15 }
+    },
     // 29번: 믹스견(시고르자브) — 등록된 견종 중 두 마리를 무작위로 매칭해 만들어지는, 세상에 하나뿐인 조합.
     // 특정 견종 배수를 주지 않고 중립으로 두고, 크기·모색·눈동자색·픽셀 실루엣은 매칭된 두 견종에서 랜덤으로 물려받음(chooseCrate 참고).
     mix: {
@@ -64,9 +84,9 @@
       mult:{}
     }
   };
-  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","mix"];
+  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","mix"];
   // 실제 "정식 견종" 목록(믹스견의 부모 매칭 대상) — mix 자신은 제외
-  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu"];
+  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon"];
 
   // 4-1. 랜덤 성격 & 신체 패시브 (석세스모드 참고)
   var PERSONALITIES = [
@@ -87,7 +107,9 @@
   ];
 
   // 견종별 체구 구분(19번 실측 체고 기준) — 이동장을 열기 전, 크기만 먼저 살짝 알려주는 용도
-  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", mix:"중형" };
+  // 78번: 푸들은 소형/미디엄/스탠다드 3사이즈로 나오지만(개체별 state.breedSizeClass), 이 SIZE_LABEL은
+  // 부상 위험 확률(jointCare)처럼 "견종 하나에 크기 하나"를 전제하는 기존 로직용 대표값이라 중형으로 고정.
+  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", mix:"중형" };
 
   // 견종별로 실제 나올 법한 눈동자 색 팔레트 — 견종은 이미 정해져 있고(이동장 뽑기), 그 안에서 유저가 선택
   var EYE_COLORS = {
@@ -129,6 +151,19 @@
     shihtzu: [
       { id:"darkbrown", name:"흑갈색", hex:"#2E1D12" },
       { id:"espresso", name:"에스프레소", hex:"#241712" }
+    ],
+    // 78번(24장): 신규 3종 — 모두 실제로 짙은 다크 브라운~블랙 계열 눈동자가 표준인 견종들.
+    maltese: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#241712" },
+      { id:"espresso", name:"에스프레소", hex:"#1A120D" }
+    ],
+    poodle: [
+      { id:"darkbrown", name:"짙은 갈색", hex:"#3A2415" },
+      { id:"amber", name:"호박색", hex:"#8A5A28" }
+    ],
+    bichon: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#2E1D12" },
+      { id:"espresso", name:"에스프레소", hex:"#1F150F" }
     ]
   };
   // 견종별 실제 표준 모색 팔레트 — 첫 항목은 기존에 쓰던 기본 색상과 동일(하위 호환)
@@ -177,6 +212,25 @@
       { id:"goldwhite", name:"골드 & 화이트", fur:{ a:"#E7B975", aDark:"#C89552", b:"#FBF6EC", bDark:"#DAD2BE" } },
       { id:"white", name:"화이트", fur:{ a:"#F8F5EC", aDark:"#DAD5C4", b:"#EDE8D8", bDark:"#CFC9B6" } },
       { id:"black", name:"블랙", fur:{ a:"#3C3A38", aDark:"#242222", b:"#585351", bDark:"#3A3634" } }
+    ],
+    // 78번(24장): 몰티즈는 실제로 거의 흰색 단일색으로 고정되는 견종 — 완전 고정 대신, 화이트 계열
+    // 2종 + 드문 크림탄 1종으로 배정해 흰색 쪽 비중을 2/3로 높임(모색은 균등 랜덤이라 배열 구성으로
+    // 가중치를 흉내냄). 완전 고정이 더 낫다면 이 배열을 화이트 한 종류만 남기면 됨 — 아직 미확정(오픈 이슈).
+    maltese: [
+      { id:"white", name:"화이트", fur:{ a:"#FAF8F2", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D8D2BE" } },
+      { id:"ivory", name:"아이보리", fur:{ a:"#F5EFDD", aDark:"#D9CFA9", b:"#EFE6C8", bDark:"#CFC299" } },
+      { id:"creamtan", name:"크림탄(드묾)", fur:{ a:"#EAD9B0", aDark:"#C9AF7C", b:"#DFCB98", bDark:"#BE9F66" } }
+    ],
+    poodle: [
+      { id:"apricot", name:"애프리콧", fur:{ a:"#E7A55C", aDark:"#C1813C", b:"#D89249", bDark:"#AD7230" } },
+      { id:"black", name:"블랙", fur:{ a:"#3A3733", aDark:"#242220", b:"#4A4642", bDark:"#302D2A" } },
+      { id:"cream", name:"크림색", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
+    ],
+    // 비숑프리제도 실제 견종 표준이 흰색이라, 화이트 계열을 중심으로 배정.
+    bichon: [
+      { id:"white", name:"화이트", fur:{ a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC" } },
+      { id:"creamtrim", name:"화이트(살구빛 포인트)", fur:{ a:"#FBFAF4", aDark:"#E2C79A", b:"#F3EEDF", bDark:"#D6BE8E" } },
+      { id:"ivory", name:"아이보리", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
     ]
   };
 

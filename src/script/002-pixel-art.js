@@ -18,7 +18,15 @@
     // 31번: 시베리안 허스키 — 늑대상의 다부진 체형, 쫑긋 선 귀에 등 위로 살짝 말리는 꼬리
     husky:{ heightCm:58, lengthRatio:1.15, legRatio:0.30, earStyle:"erect", tailStyle:"curl" },
     // 31번: 시츄 — 짧은 다리에 낮은 체고, 단두종 특유의 짧은 주둥이(snoutRatio 최소치), 풍성한 꼬리는 포메 스타일 재활용
-    shihtzu:{ heightCm:26, lengthRatio:1.15, legRatio:0.21, earStyle:"floppy", tailStyle:"plume", snoutRatio:0.24 }
+    shihtzu:{ heightCm:26, lengthRatio:1.15, legRatio:0.21, earStyle:"floppy", tailStyle:"plume", snoutRatio:0.24 },
+    // 78번(24장): 신규 3종. headScaleMult/curlyFur는 이번에 새로 추가된 속성(기본값 1/false) — 아래
+    // drawPixelDog()에서 헤더·몸통 실루엣에 반영됨.
+    // 몰티즈: 아주 작은 체구, 실키한 처진 귀(시츄 스타일 재사용), 짧고 가는 주둥이.
+    maltese:{ heightCm:22, lengthRatio:1.1, legRatio:0.22, earStyle:"floppyLong", tailStyle:"plume", snoutRatio:0.26 },
+    // 푸들: 스탠다드(100%) 기준 체고 — 소형/미디엄은 breedSizeScale()로 별도 곱연산. 처진 귀, 동그란 폼폼 꼬리(plume 재사용).
+    poodle:{ heightCm:45, lengthRatio:1.05, legRatio:0.34, earStyle:"floppyLow", tailStyle:"plume", snoutRatio:0.3 },
+    // 비숑프리제: "큰 대두"(headScaleMult×2)·짧은 다리(legRatio 최소치권)·곱슬곱슬 뭉게구름 실루엣(curlyFur).
+    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true }
   };
   // 32번: 산책 팝업의 반려견이 너무 작다는 피드백 반영 — 픽셀모드 산책 캔버스의 표시 크기를
   // "대형견 기준 체고가 팝업(.walk-scene, 120px) 높이의 2/3를 차지"하도록 역산해서 정함.
@@ -61,6 +69,14 @@
       return "#" + h2(r) + h2(g) + h2(b);
     }catch(e){ return hex; }
   }
+  // 78번(24장): 비숑프리제의 "곱슬곱슬 뭉게구름 같은" 털 실루엣용 — 새 그래픽 자산 없이, 기존
+  // drawCloudPuff()와 같은 발상(작은 뭉치 블록 여러 개)을 털색으로 재사용해 몸통·머리 윤곽에 스캘럽
+  // 느낌의 뭉치를 얹음. sc.curlyFur가 true인 견종에서만 호출됨(현재는 비숑프리제 한정).
+  function drawFurPuff(ctx, cx, cy, r, color){
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - r, cy - Math.round(r*0.4), r*2, Math.max(1, Math.round(r*0.8)));
+    ctx.fillRect(cx - Math.round(r*0.6), cy - r, Math.max(1, Math.round(r*1.2)), Math.max(1, Math.round(r*0.6)));
+  }
 
   var pixelBlink = false, pixelTailFrame = false, pixelBobUp = false;
   var pixelBlinkTimer = null, pixelTailTimer = null, pixelBobTimer = null;
@@ -89,7 +105,9 @@
     // 75번(21장): 누적 스탯 기반 시각 개성화 입력값 — growthVisual()과 나란히, drawPixelDog()의
     // 기존 계산식에 배율/오프셋만 얹는 식으로 소비함(새 그래픽 자산 없음, statVisual() 주석 참고).
     var sv = (ov && ov.sv) ? ov.sv : statVisual();
-    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
+    // 78번: 푸들 소형/미디엄/스탠다드 크기 클래스 배율(breedSizeScale, 다른 견종은 항상 1)을
+    // 성장단계 스케일과 곱연산으로 함께 적용 — 24장 사용자 지정 그대로.
+    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale * breedSizeScale()));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     // 민첩성: 다리 비율 소폭 조정
     var legH = Math.max(2, Math.round(H * sc.legRatio * sv.legHMult));
@@ -100,6 +118,11 @@
     // 머리 폭은 "길이"가 아니라 "체고"를 기준으로 잡아, 몸통이 길게 늘어난 견종(웰시코기 등)도
     // 머리만 같이 늘어나 보이지 않고 자연스러운 크기를 유지하게 함
     var headW = Math.max(4, Math.round(H * 0.40));
+    // 78번(24장): 비숑프리제 "큰 대두" — 다른 치수(다리·몸통)는 그대로 두고 머리 폭·높이만 배율.
+    if(sc.headScaleMult){
+      headH = Math.round(headH * sc.headScaleMult);
+      headW = Math.round(headW * sc.headScaleMult);
+    }
 
     var cx = Math.round(PX_W/2) + 2 + (offsetX || 0);
     var bodyLeft = cx - Math.round(bodyW/2);
@@ -208,9 +231,26 @@
       ctx.fillRect(bodyLeft, bodyTop - rumpH + Math.round(rumpH*0.35) + oy, rumpW, rumpH);
     }
 
+    // 78번: 곱슬곱슬 뭉게구름 실루엣(비숑프리제) — 몸통 윤곽을 따라 작은 뭉치를 얹어 스캘럽 느낌을 냄
+    if(sc.curlyFur){
+      var bPuffR = Math.max(2, Math.round(bodyH*0.22));
+      [[bodyLeft+bodyW*0.15, bodyTop],[bodyLeft+bodyW*0.5, bodyTop-bPuffR*0.3],[bodyLeft+bodyW*0.85, bodyTop],
+       [bodyLeft-bPuffR*0.3, bodyTop+bodyH*0.5],[bodyRight+bPuffR*0.3, bodyTop+bodyH*0.5]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, bPuffR, furA);
+      });
+    }
+
     // 머리 (몸통보다 먼저 겹치는 부분을 자연스럽게 덮도록 몸통 다음에 그림)
     ctx.fillStyle = furA;
     ctx.fillRect(headLeft, headTop + oy, headW, headH);
+
+    // 78번: 머리 쪽 곱슬 뭉치도 함께(귀·눈·주둥이는 이후에 그려져 또렷하게 그 위에 얹힘)
+    if(sc.curlyFur){
+      var hPuffR = Math.max(2, Math.round(headH*0.26));
+      [[headLeft+headW*0.2, headTop],[headLeft+headW*0.5, headTop-hPuffR*0.3],[headLeft+headW*0.8, headTop]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, hPuffR, furA);
+      });
+    }
 
     // 귀 — "먼 쪽 귀 + 가까운 쪽 귀" 두 개를 살짝 겹쳐 그려, 옆모습이어도 귀가 하나만 있는
     // 것처럼 허전해 보이지 않게 함. 처진 귀는 아래로 늘어지고, 쫑긋 선 귀는 위로 솟음.

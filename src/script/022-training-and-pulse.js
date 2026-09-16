@@ -138,6 +138,8 @@
   // 31번: 스탯 산출 방식(부견쪽 우선45% / 모견쪽 우선45% / 완전 랜덤10%)도 이동장을 고르는 시점에 함께 굴림
   // — 완전 랜덤일 때 공개 화면에서 바로 전용 대사를 보여줘야 해서, 시작하기(startBtn) 시점이 아니라 여기서 미리 확정
   var chosenMixParents = null, chosenMixGeoBreed = null, chosenMixStatMethod = null;
+  // 78번(24장): 푸들일 때만 쓰임 — 소형/미디엄/스탠다드 중 하나(균등 1/3, breedSizeScale() 참고).
+  var chosenPoodleSize = null;
 
   // 31번: 개체별 편차(±pct) — 기준값을 (1±pct) 범위에서 무작위로 흔든 뒤 0~100으로 clamp, 정수 반올림.
   // item4(견종별 시작 스테이터스 ±20%)와 시고르자브 1단계 부/모견 가중치(±10%) 양쪽에서 재사용.

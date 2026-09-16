@@ -86,7 +86,12 @@
         corgi:    { earStyle:"erect",      scale:0.6,  blaze:true, name:"웰시코기" },
         pom:      { earStyle:"erectSmall", scale:0.5,  fluffy:true, name:"포메라니안" },
         husky:    { earStyle:"erect",      scale:0.85, mask:true, chestWhite:true, name:"시베리안 허스키" },
-        shihtzu:  { earStyle:"floppyLong", scale:0.5,  fluffy:true, snoutShort:true, name:"시츄" }
+        shihtzu:  { earStyle:"floppyLong", scale:0.5,  fluffy:true, snoutShort:true, name:"시츄" },
+        // 78번(24장): 신규 3종. headScaleMult/legScaleMult는 이번에 새로 추가된 속성(기본 1) — 아래
+        // drawWalkFrontDog()에서 반영됨. fluffy는 기존 71번 관례 그대로(포메·시츄와 같은 방식) 재사용.
+        maltese:  { earStyle:"floppyLong", scale:0.42, name:"몰티즈" },
+        poodle:   { earStyle:"floppyLow",  scale:0.85, name:"푸들" },
+        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" }
       };
     }
     return _walkBreedFrontCache;
@@ -227,7 +232,7 @@
     var d = Math.max(0.02, 1 - dogLoopPhase); // d:1(지평선)~0(카메라 코앞)
     var sy = screenY(d);
     var s = ease(d);
-    var sc = bf.scale * gv.scale * walkPovDogScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2)
+    var sc = bf.scale * gv.scale * walkPovDogScale() * breedSizeScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2) × 78번 푸들 크기 클래스 배율(다른 견종은 항상 1)
     var earPerk = gv.earPerk;
     var sway = Math.sin(t*2.1) * 5 * s * sc;
     var bob = Math.sin(t*6.4) * 1.4 * s * sc;
@@ -240,6 +245,10 @@
     var blockW = unit*5.4;
     var headW = blockW, bodyW = blockW;
     var legW = bodyW*0.26, legGap = bodyW*0.16;
+    // 78번(24장): 비숑프리제 "큰 대두"·짧은 다리 — 몸통 폭(bodyW, 다리 굵기 계산에 이미 쓰임)은 그대로 두고
+    // 머리·다리 길이만 배율(headScaleMult/legScaleMult, 기본 1).
+    if(bf.headScaleMult){ headH *= bf.headScaleMult; headW *= bf.headScaleMult; }
+    if(bf.legScaleMult){ legH *= bf.legScaleMult; }
 
     var totalH = headH*0.86 + bodyH*0.92 + legH;
     var headTop = sy - totalH*0.58 + bob + (gv.headDroop || 0);

@@ -2525,6 +2525,26 @@
       // 긴 털은 손이 많이 가고, 차분한 시간에 유독 행복해하며, 체구가 작아 금방 지치는 편
       mult:{ cleanDrain:1.2, happinessGainCalm:1.15, energyDrain:1.1 }
     },
+    // 78번(24장): 견종 3종 추가 — 몰티즈·푸들·비숑프리제. mult 배율은 문서에 정확한 수치가 없어
+    // 리서치 근거(desc 참고)에 맞춰 개발팀이 기존 견종들과 같은 결로 채움(오픈 이슈, 실플레이 후 조정 가능).
+    maltese: {
+      name:"몰티즈", desc:"아무나 안 좋아하지만 마음을 준 사람껜 끝까지 곁을 지키는, 작고 예민한 아이",
+      fur:{a:"#FAF8F2", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D8D2BE"},
+      // 폐쇄적 사회성(아무나에게 마음을 안 여는 편) → 유대감 형성이 다소 느긋, 체구가 작아 금방 지치는 편
+      mult:{ cleanDrain:1.2, energyDrain:1.15, bondGain:0.9 }
+    },
+    poodle: {
+      name:"푸들", desc:"주인의 감정을 가장 잘 읽는, 소형·미디엄·스탠다드 세 크기 중 하나로 만나는 영리한 아이",
+      fur:{a:"#E7A55C", aDark:"#C1813C", b:"#D89249", bDark:"#AD7230"},
+      // 사람 마음을 잘 읽고 활동적일 때 특히 즐거워함, 곱슬 털은 손질이 자주 필요한 편
+      mult:{ cleanDrain:1.15, bondGain:1.1, happinessGainActive:1.1 }
+    },
+    bichon: {
+      name:"비숑프리제", desc:"누구에게나 반갑게 다가가는, 곱슬곱슬 뭉게구름 같은 털의 왕성한 먹보",
+      fur:{a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC"},
+      // 왕성한 식욕과 활발함("비숑타임"), 곱슬 털은 손질이 자주 필요한 편
+      mult:{ cleanDrain:1.15, hungerDrain:1.15, happinessGainActive:1.15 }
+    },
     // 29번: 믹스견(시고르자브) — 등록된 견종 중 두 마리를 무작위로 매칭해 만들어지는, 세상에 하나뿐인 조합.
     // 특정 견종 배수를 주지 않고 중립으로 두고, 크기·모색·눈동자색·픽셀 실루엣은 매칭된 두 견종에서 랜덤으로 물려받음(chooseCrate 참고).
     mix: {
@@ -2533,9 +2553,9 @@
       mult:{}
     }
   };
-  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","mix"];
+  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","mix"];
   // 실제 "정식 견종" 목록(믹스견의 부모 매칭 대상) — mix 자신은 제외
-  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu"];
+  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon"];
 
   // 4-1. 랜덤 성격 & 신체 패시브 (석세스모드 참고)
   var PERSONALITIES = [
@@ -2556,7 +2576,9 @@
   ];
 
   // 견종별 체구 구분(19번 실측 체고 기준) — 이동장을 열기 전, 크기만 먼저 살짝 알려주는 용도
-  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", mix:"중형" };
+  // 78번: 푸들은 소형/미디엄/스탠다드 3사이즈로 나오지만(개체별 state.breedSizeClass), 이 SIZE_LABEL은
+  // 부상 위험 확률(jointCare)처럼 "견종 하나에 크기 하나"를 전제하는 기존 로직용 대표값이라 중형으로 고정.
+  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", mix:"중형" };
 
   // 견종별로 실제 나올 법한 눈동자 색 팔레트 — 견종은 이미 정해져 있고(이동장 뽑기), 그 안에서 유저가 선택
   var EYE_COLORS = {
@@ -2598,6 +2620,19 @@
     shihtzu: [
       { id:"darkbrown", name:"흑갈색", hex:"#2E1D12" },
       { id:"espresso", name:"에스프레소", hex:"#241712" }
+    ],
+    // 78번(24장): 신규 3종 — 모두 실제로 짙은 다크 브라운~블랙 계열 눈동자가 표준인 견종들.
+    maltese: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#241712" },
+      { id:"espresso", name:"에스프레소", hex:"#1A120D" }
+    ],
+    poodle: [
+      { id:"darkbrown", name:"짙은 갈색", hex:"#3A2415" },
+      { id:"amber", name:"호박색", hex:"#8A5A28" }
+    ],
+    bichon: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#2E1D12" },
+      { id:"espresso", name:"에스프레소", hex:"#1F150F" }
     ]
   };
   // 견종별 실제 표준 모색 팔레트 — 첫 항목은 기존에 쓰던 기본 색상과 동일(하위 호환)
@@ -2646,6 +2681,25 @@
       { id:"goldwhite", name:"골드 & 화이트", fur:{ a:"#E7B975", aDark:"#C89552", b:"#FBF6EC", bDark:"#DAD2BE" } },
       { id:"white", name:"화이트", fur:{ a:"#F8F5EC", aDark:"#DAD5C4", b:"#EDE8D8", bDark:"#CFC9B6" } },
       { id:"black", name:"블랙", fur:{ a:"#3C3A38", aDark:"#242222", b:"#585351", bDark:"#3A3634" } }
+    ],
+    // 78번(24장): 몰티즈는 실제로 거의 흰색 단일색으로 고정되는 견종 — 완전 고정 대신, 화이트 계열
+    // 2종 + 드문 크림탄 1종으로 배정해 흰색 쪽 비중을 2/3로 높임(모색은 균등 랜덤이라 배열 구성으로
+    // 가중치를 흉내냄). 완전 고정이 더 낫다면 이 배열을 화이트 한 종류만 남기면 됨 — 아직 미확정(오픈 이슈).
+    maltese: [
+      { id:"white", name:"화이트", fur:{ a:"#FAF8F2", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D8D2BE" } },
+      { id:"ivory", name:"아이보리", fur:{ a:"#F5EFDD", aDark:"#D9CFA9", b:"#EFE6C8", bDark:"#CFC299" } },
+      { id:"creamtan", name:"크림탄(드묾)", fur:{ a:"#EAD9B0", aDark:"#C9AF7C", b:"#DFCB98", bDark:"#BE9F66" } }
+    ],
+    poodle: [
+      { id:"apricot", name:"애프리콧", fur:{ a:"#E7A55C", aDark:"#C1813C", b:"#D89249", bDark:"#AD7230" } },
+      { id:"black", name:"블랙", fur:{ a:"#3A3733", aDark:"#242220", b:"#4A4642", bDark:"#302D2A" } },
+      { id:"cream", name:"크림색", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
+    ],
+    // 비숑프리제도 실제 견종 표준이 흰색이라, 화이트 계열을 중심으로 배정.
+    bichon: [
+      { id:"white", name:"화이트", fur:{ a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC" } },
+      { id:"creamtrim", name:"화이트(살구빛 포인트)", fur:{ a:"#FBFAF4", aDark:"#E2C79A", b:"#F3EEDF", bDark:"#D6BE8E" } },
+      { id:"ivory", name:"아이보리", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
     ]
   };
 
@@ -2690,7 +2744,15 @@
     // 31번: 시베리안 허스키 — 늑대상의 다부진 체형, 쫑긋 선 귀에 등 위로 살짝 말리는 꼬리
     husky:{ heightCm:58, lengthRatio:1.15, legRatio:0.30, earStyle:"erect", tailStyle:"curl" },
     // 31번: 시츄 — 짧은 다리에 낮은 체고, 단두종 특유의 짧은 주둥이(snoutRatio 최소치), 풍성한 꼬리는 포메 스타일 재활용
-    shihtzu:{ heightCm:26, lengthRatio:1.15, legRatio:0.21, earStyle:"floppy", tailStyle:"plume", snoutRatio:0.24 }
+    shihtzu:{ heightCm:26, lengthRatio:1.15, legRatio:0.21, earStyle:"floppy", tailStyle:"plume", snoutRatio:0.24 },
+    // 78번(24장): 신규 3종. headScaleMult/curlyFur는 이번에 새로 추가된 속성(기본값 1/false) — 아래
+    // drawPixelDog()에서 헤더·몸통 실루엣에 반영됨.
+    // 몰티즈: 아주 작은 체구, 실키한 처진 귀(시츄 스타일 재사용), 짧고 가는 주둥이.
+    maltese:{ heightCm:22, lengthRatio:1.1, legRatio:0.22, earStyle:"floppyLong", tailStyle:"plume", snoutRatio:0.26 },
+    // 푸들: 스탠다드(100%) 기준 체고 — 소형/미디엄은 breedSizeScale()로 별도 곱연산. 처진 귀, 동그란 폼폼 꼬리(plume 재사용).
+    poodle:{ heightCm:45, lengthRatio:1.05, legRatio:0.34, earStyle:"floppyLow", tailStyle:"plume", snoutRatio:0.3 },
+    // 비숑프리제: "큰 대두"(headScaleMult×2)·짧은 다리(legRatio 최소치권)·곱슬곱슬 뭉게구름 실루엣(curlyFur).
+    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true }
   };
   // 32번: 산책 팝업의 반려견이 너무 작다는 피드백 반영 — 픽셀모드 산책 캔버스의 표시 크기를
   // "대형견 기준 체고가 팝업(.walk-scene, 120px) 높이의 2/3를 차지"하도록 역산해서 정함.
@@ -2733,6 +2795,14 @@
       return "#" + h2(r) + h2(g) + h2(b);
     }catch(e){ return hex; }
   }
+  // 78번(24장): 비숑프리제의 "곱슬곱슬 뭉게구름 같은" 털 실루엣용 — 새 그래픽 자산 없이, 기존
+  // drawCloudPuff()와 같은 발상(작은 뭉치 블록 여러 개)을 털색으로 재사용해 몸통·머리 윤곽에 스캘럽
+  // 느낌의 뭉치를 얹음. sc.curlyFur가 true인 견종에서만 호출됨(현재는 비숑프리제 한정).
+  function drawFurPuff(ctx, cx, cy, r, color){
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - r, cy - Math.round(r*0.4), r*2, Math.max(1, Math.round(r*0.8)));
+    ctx.fillRect(cx - Math.round(r*0.6), cy - r, Math.max(1, Math.round(r*1.2)), Math.max(1, Math.round(r*0.6)));
+  }
 
   var pixelBlink = false, pixelTailFrame = false, pixelBobUp = false;
   var pixelBlinkTimer = null, pixelTailTimer = null, pixelBobTimer = null;
@@ -2761,7 +2831,9 @@
     // 75번(21장): 누적 스탯 기반 시각 개성화 입력값 — growthVisual()과 나란히, drawPixelDog()의
     // 기존 계산식에 배율/오프셋만 얹는 식으로 소비함(새 그래픽 자산 없음, statVisual() 주석 참고).
     var sv = (ov && ov.sv) ? ov.sv : statVisual();
-    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale));
+    // 78번: 푸들 소형/미디엄/스탠다드 크기 클래스 배율(breedSizeScale, 다른 견종은 항상 1)을
+    // 성장단계 스케일과 곱연산으로 함께 적용 — 24장 사용자 지정 그대로.
+    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale * breedSizeScale()));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     // 민첩성: 다리 비율 소폭 조정
     var legH = Math.max(2, Math.round(H * sc.legRatio * sv.legHMult));
@@ -2772,6 +2844,11 @@
     // 머리 폭은 "길이"가 아니라 "체고"를 기준으로 잡아, 몸통이 길게 늘어난 견종(웰시코기 등)도
     // 머리만 같이 늘어나 보이지 않고 자연스러운 크기를 유지하게 함
     var headW = Math.max(4, Math.round(H * 0.40));
+    // 78번(24장): 비숑프리제 "큰 대두" — 다른 치수(다리·몸통)는 그대로 두고 머리 폭·높이만 배율.
+    if(sc.headScaleMult){
+      headH = Math.round(headH * sc.headScaleMult);
+      headW = Math.round(headW * sc.headScaleMult);
+    }
 
     var cx = Math.round(PX_W/2) + 2 + (offsetX || 0);
     var bodyLeft = cx - Math.round(bodyW/2);
@@ -2880,9 +2957,26 @@
       ctx.fillRect(bodyLeft, bodyTop - rumpH + Math.round(rumpH*0.35) + oy, rumpW, rumpH);
     }
 
+    // 78번: 곱슬곱슬 뭉게구름 실루엣(비숑프리제) — 몸통 윤곽을 따라 작은 뭉치를 얹어 스캘럽 느낌을 냄
+    if(sc.curlyFur){
+      var bPuffR = Math.max(2, Math.round(bodyH*0.22));
+      [[bodyLeft+bodyW*0.15, bodyTop],[bodyLeft+bodyW*0.5, bodyTop-bPuffR*0.3],[bodyLeft+bodyW*0.85, bodyTop],
+       [bodyLeft-bPuffR*0.3, bodyTop+bodyH*0.5],[bodyRight+bPuffR*0.3, bodyTop+bodyH*0.5]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, bPuffR, furA);
+      });
+    }
+
     // 머리 (몸통보다 먼저 겹치는 부분을 자연스럽게 덮도록 몸통 다음에 그림)
     ctx.fillStyle = furA;
     ctx.fillRect(headLeft, headTop + oy, headW, headH);
+
+    // 78번: 머리 쪽 곱슬 뭉치도 함께(귀·눈·주둥이는 이후에 그려져 또렷하게 그 위에 얹힘)
+    if(sc.curlyFur){
+      var hPuffR = Math.max(2, Math.round(headH*0.26));
+      [[headLeft+headW*0.2, headTop],[headLeft+headW*0.5, headTop-hPuffR*0.3],[headLeft+headW*0.8, headTop]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, hPuffR, furA);
+      });
+    }
 
     // 귀 — "먼 쪽 귀 + 가까운 쪽 귀" 두 개를 살짝 겹쳐 그려, 옆모습이어도 귀가 하나만 있는
     // 것처럼 허전해 보이지 않게 함. 처진 귀는 아래로 늘어지고, 쫑긋 선 귀는 위로 솟음.
@@ -3869,8 +3963,25 @@
     corgi:    { power:40, agility:65, comprehension:80, execution:65, loyalty:90, affinity:80, health:55, aggression:55 },
     pom:      { power:20, agility:55, comprehension:65, execution:40, loyalty:55, affinity:25, health:45, aggression:90 },
     husky:    { power:85, agility:75, comprehension:70, execution:30, loyalty:30, affinity:80, health:60, aggression:15 },
-    shihtzu:  { power:15, agility:30, comprehension:55, execution:50, loyalty:50, affinity:90, health:45, aggression:10 }
+    shihtzu:  { power:15, agility:30, comprehension:55, execution:50, loyalty:50, affinity:90, health:45, aggression:10 },
+    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 반영): 신규 3종 — 3사이즈 전부 스탯 동일한 푸들 포함.
+    maltese:  { power:15, agility:50, comprehension:60, execution:40, loyalty:60, affinity:35, health:40, aggression:60 },
+    poodle:   { power:55, agility:70, comprehension:95, execution:90, loyalty:65, affinity:90, health:60, aggression:10 },
+    bichon:   { power:25, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
   };
+  // 78번: 푸들 전용 "크기 클래스" — 스탯·고유능력은 3사이즈 전부 동일, 그래픽 크기만 이 배율로 차등
+  // 적용됨(9장 성장단계 스케일과 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).
+  // 배정 확률(균등 1/3)은 문서에 명시가 없어 개발팀이 기본값으로 채움(오픈 이슈, 실플레이 후 조정 가능).
+  var POODLE_SIZE_SCALE = { small:0.70, medium:0.85, standard:1.00 };
+  var POODLE_SIZE_LABEL = { small:"소형", medium:"미디엄", standard:"스탠다드" };
+  var POODLE_SIZE_CLASSES = ["small","medium","standard"];
+  function breedSizeScale(){
+    if(typeof state === "undefined") return 1;
+    if(state.breed === "poodle" && state.breedSizeClass && POODLE_SIZE_SCALE[state.breedSizeClass] != null){
+      return POODLE_SIZE_SCALE[state.breedSizeClass];
+    }
+    return 1;
+  }
   // 37번: 성장 단계 시스템(기획문서 9장, 1차 확정) — 이동장에서 반려견을 만나는 순간(온보딩) 4단계 중
   // 하나가 시작 성장단계로 25%씩 균등 확률 배정됨. 기존에 있던 STAGE_NAMES/stageIndex/STAGE_THRESHOLDS
   // (유대감 누적치로 아기→청소년→성견을 가르는, 반려견 실루엣용 완전히 별개의 시스템)와 이름이 겹치지
@@ -4166,6 +4277,28 @@
       desc:"스트레스(만족도) 상승 속도 대폭 완화",
       note:"시츄로 시작하면 50% 확률로 부여돼요. 스트레스 상승 속도 보정은 고정 수치 효과가 아니라 다음 라운드로 미룹니다.",
       onboardRoll:function(){ return state.breed === "shihtzu" ? 0.5 : 0; }
+    },
+    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 53~55행): 신규 견종 3종(몰티즈·푸들·비숑프리제) 전용 고유능력.
+    // 셋 다 효과가 "배율"이거나 "조건부 시너지"거나 "낮은 확률의 런타임 이벤트"라, 다른 견종들의 유사
+    // 사례(든든한 파트너의 이벤트 확률 보정, 세상만사 평화로워의 상승속도 완화 등)와 같은 이유로 실제
+    // 배율/이벤트 파이프라인은 아직 안 걸려있음 — 정의만 등록해두고 다음 라운드로 미룸(오픈 이슈).
+    {
+      id:"aloofOne", name:"새침데기", category:"innateUnique", tone:"neutral", positive:true, breed:"maltese",
+      desc:"친화력 상승효과 ×0.7, 충성도 상승효과 ×1.3",
+      note:"몰티즈로 시작하면 50% 확률로 부여돼요. 몰티즈 특유의 '폐쇄적 사회성'(아무나 안 좋아하지만 마음 준 사람껜 끝까지 곁을 지킴, 24장 리서치 근거) 반영. 친화력/충성도가 오르는 지점마다 이 배율을 걸려면 gain 파이프라인 전체를 손봐야 해서, 이번엔 정의만 등록하고 실제 배율 적용은 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "maltese" ? 0.5 : 0; }
+    },
+    {
+      id:"emotionReader", name:"마음을 읽어요", category:"innateUnique", tone:"positive", positive:true, breed:"poodle",
+      desc:"견생만족도 스트레스가 높은 상태일 때 함께 있으면 유대감 획득량 증가(조건부 시너지, 구체 수치 미정)",
+      note:"푸들(소형/미디엄/스탠다드 공통)로 시작하면 50% 확률로 부여돼요. 강형욱 훈련사가 '주인의 감정을 파악하는 데 최고'라고 평가한 푸들 특유의 정서 감지 능력 반영(24장 리서치 근거). 정확한 배율 자체가 원안 엑셀에 '미정'으로 명시돼 있어, 스트레스 연동 시너지는 수치가 확정되는 다음 라운드에 구현합니다.",
+      onboardRoll:function(){ return state.breed === "poodle" ? 0.5 : 0; }
+    },
+    {
+      id:"bichonTime", name:"비숑타임!", category:"innateUnique", tone:"neutral", positive:true, breed:"bichon",
+      desc:"낮은 확률로 산책·휴식 중 폭발적 에너지 이벤트 발생 — 민첩성·근력 큰 폭 상승과 함께 스트레스도 소폭 상승",
+      note:"비숑프리제로 시작하면 50% 확률로 부여돼요. 실제 비숑프리제 보호자들 사이에서 '비숑타임'이라 불리는 폭발적 에너지 분출 현상을 그대로 능력화(24장 리서치 근거). '낮은 확률'·'큰 폭'의 정확한 수치가 아직 없어, 산책·휴식 틱에 실제 이벤트를 발동시키는 로직은 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "bichon" ? 0.5 : 0; }
     },
     {
       id:"strangerShy", name:"낯가림쟁이", category:"acquiredCommon", tone:"negative", positive:false,
@@ -4961,6 +5094,8 @@
       // 29번: 믹스견(시고르자브)일 때만 채워짐 — 매칭된 두 견종, 그리고 픽셀 실루엣에 쓸 체구 출처 견종
       mixParents:null,
       mixGeoBreed:null,
+      // 78번(24장): 푸들일 때만 채워짐 — "small"/"medium"/"standard" 중 하나(breedSizeScale() 참고).
+      breedSizeClass:null,
       createdTs: now,
       lastTs: now,
       onboarded:false,
@@ -5036,6 +5171,8 @@
   // 29번(믹스견) 도입 전 저장분 마이그레이션
   if(state.mixParents === undefined){ state.mixParents = null; }
   if(state.mixGeoBreed === undefined){ state.mixGeoBreed = null; }
+  // 78번(24장, 푸들 크기 클래스) 도입 전 저장분 마이그레이션
+  if(state.breedSizeClass === undefined){ state.breedSizeClass = null; }
   // 60번(지역 전담 능력) 도입 전 저장분 마이그레이션
   if(!state.regionWalkCounts){ state.regionWalkCounts = {}; }
   if(state.regionAbilityWalkGrantCount === undefined){ state.regionAbilityWalkGrantCount = 0; }
@@ -8238,6 +8375,8 @@
   // 31번: 스탯 산출 방식(부견쪽 우선45% / 모견쪽 우선45% / 완전 랜덤10%)도 이동장을 고르는 시점에 함께 굴림
   // — 완전 랜덤일 때 공개 화면에서 바로 전용 대사를 보여줘야 해서, 시작하기(startBtn) 시점이 아니라 여기서 미리 확정
   var chosenMixParents = null, chosenMixGeoBreed = null, chosenMixStatMethod = null;
+  // 78번(24장): 푸들일 때만 쓰임 — 소형/미디엄/스탠다드 중 하나(균등 1/3, breedSizeScale() 참고).
+  var chosenPoodleSize = null;
 
   // 31번: 개체별 편차(±pct) — 기준값을 (1±pct) 범위에서 무작위로 흔든 뒤 0~100으로 clamp, 정수 반올림.
   // item4(견종별 시작 스테이터스 ±20%)와 시고르자브 1단계 부/모견 가중치(±10%) 양쪽에서 재사용.
@@ -8380,6 +8519,13 @@
     el.revealPassive.textContent = rolledPassive.name;
     el.revealPassive.className = "rv " + (rolledPassive.positive ? "positive" : "negative");
     el.revealFlavor.textContent = breed.desc + " " + rolledPersonality.flavor + " " + rolledPassive.flavor;
+    if(breedId === "poodle"){
+      // 78번(24장): 스탯·고유능력은 3사이즈 공통이라 여기선 그래픽 크기 클래스만 균등 1/3로 굴림.
+      chosenPoodleSize = POODLE_SIZE_CLASSES[Math.floor(Math.random()*POODLE_SIZE_CLASSES.length)];
+      el.revealFlavor.textContent += " 이번엔 " + POODLE_SIZE_LABEL[chosenPoodleSize] + " 사이즈로 만났어요.";
+    } else {
+      chosenPoodleSize = null;
+    }
     if(breedId === "mix"){
       // 29번: 믹스견은 등록된 견종 중 두 마리를 무작위로 매칭 — 그 중 하나를 체구(크기) 출처로 다시 뽑음
       var pool = PURE_BREED_ORDER.slice();
@@ -8432,6 +8578,7 @@
     chosenMixParents = null;
     chosenMixGeoBreed = null;
     chosenMixStatMethod = null;
+    chosenPoodleSize = null;
     buildCrateGrid();
     el.stepShelter.hidden = false;
     el.stepSizeHint.hidden = true;
@@ -8457,6 +8604,8 @@
     // 29번: 시고르자브(믹스견) — 매칭된 두 견종 정보를 저장해 픽셀 실루엣·모색/눈동자 풀에 계속 활용
     state.mixParents = chosenMixParents ? chosenMixParents.slice() : null;
     state.mixGeoBreed = chosenMixGeoBreed || null;
+    // 78번(24장): 푸들일 때만 채워짐 — 그래픽 크기 클래스(스탯·고유능력은 3사이즈 공통).
+    state.breedSizeClass = (state.breed === "poodle") ? (chosenPoodleSize || "standard") : null;
     // 31번: 견종별 시작 스탯표(2026-09-01 기획 문서) 반영 — 순종은 마스터 표 값을, 시고르자브는
     // 1단계 부모 혼합 로직(부견쪽45%/모견쪽45%/완전랜덤10%) 결과를 사용.
     // 37번(기획문서 9장, 성장 단계 시스템): 이 결과값은 더 이상 "시작값"이 아니라 이 개체가 도달할 수
@@ -8664,7 +8813,12 @@
         corgi:    { earStyle:"erect",      scale:0.6,  blaze:true, name:"웰시코기" },
         pom:      { earStyle:"erectSmall", scale:0.5,  fluffy:true, name:"포메라니안" },
         husky:    { earStyle:"erect",      scale:0.85, mask:true, chestWhite:true, name:"시베리안 허스키" },
-        shihtzu:  { earStyle:"floppyLong", scale:0.5,  fluffy:true, snoutShort:true, name:"시츄" }
+        shihtzu:  { earStyle:"floppyLong", scale:0.5,  fluffy:true, snoutShort:true, name:"시츄" },
+        // 78번(24장): 신규 3종. headScaleMult/legScaleMult는 이번에 새로 추가된 속성(기본 1) — 아래
+        // drawWalkFrontDog()에서 반영됨. fluffy는 기존 71번 관례 그대로(포메·시츄와 같은 방식) 재사용.
+        maltese:  { earStyle:"floppyLong", scale:0.42, name:"몰티즈" },
+        poodle:   { earStyle:"floppyLow",  scale:0.85, name:"푸들" },
+        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" }
       };
     }
     return _walkBreedFrontCache;
@@ -8805,7 +8959,7 @@
     var d = Math.max(0.02, 1 - dogLoopPhase); // d:1(지평선)~0(카메라 코앞)
     var sy = screenY(d);
     var s = ease(d);
-    var sc = bf.scale * gv.scale * walkPovDogScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2)
+    var sc = bf.scale * gv.scale * walkPovDogScale() * breedSizeScale(); // 견종 체구 배율 × 성장단계 배율(70번 관례와 동일) × 72번 전체 확대 배율(1.2) × 78번 푸들 크기 클래스 배율(다른 견종은 항상 1)
     var earPerk = gv.earPerk;
     var sway = Math.sin(t*2.1) * 5 * s * sc;
     var bob = Math.sin(t*6.4) * 1.4 * s * sc;
@@ -8818,6 +8972,10 @@
     var blockW = unit*5.4;
     var headW = blockW, bodyW = blockW;
     var legW = bodyW*0.26, legGap = bodyW*0.16;
+    // 78번(24장): 비숑프리제 "큰 대두"·짧은 다리 — 몸통 폭(bodyW, 다리 굵기 계산에 이미 쓰임)은 그대로 두고
+    // 머리·다리 길이만 배율(headScaleMult/legScaleMult, 기본 1).
+    if(bf.headScaleMult){ headH *= bf.headScaleMult; headW *= bf.headScaleMult; }
+    if(bf.legScaleMult){ legH *= bf.legScaleMult; }
 
     var totalH = headH*0.86 + bodyH*0.92 + legH;
     var headTop = sy - totalH*0.58 + bob + (gv.headDroop || 0);

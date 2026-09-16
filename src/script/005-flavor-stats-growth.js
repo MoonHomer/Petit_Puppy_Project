@@ -57,8 +57,25 @@
     corgi:    { power:40, agility:65, comprehension:80, execution:65, loyalty:90, affinity:80, health:55, aggression:55 },
     pom:      { power:20, agility:55, comprehension:65, execution:40, loyalty:55, affinity:25, health:45, aggression:90 },
     husky:    { power:85, agility:75, comprehension:70, execution:30, loyalty:30, affinity:80, health:60, aggression:15 },
-    shihtzu:  { power:15, agility:30, comprehension:55, execution:50, loyalty:50, affinity:90, health:45, aggression:10 }
+    shihtzu:  { power:15, agility:30, comprehension:55, execution:50, loyalty:50, affinity:90, health:45, aggression:10 },
+    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 반영): 신규 3종 — 3사이즈 전부 스탯 동일한 푸들 포함.
+    maltese:  { power:15, agility:50, comprehension:60, execution:40, loyalty:60, affinity:35, health:40, aggression:60 },
+    poodle:   { power:55, agility:70, comprehension:95, execution:90, loyalty:65, affinity:90, health:60, aggression:10 },
+    bichon:   { power:25, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
   };
+  // 78번: 푸들 전용 "크기 클래스" — 스탯·고유능력은 3사이즈 전부 동일, 그래픽 크기만 이 배율로 차등
+  // 적용됨(9장 성장단계 스케일과 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).
+  // 배정 확률(균등 1/3)은 문서에 명시가 없어 개발팀이 기본값으로 채움(오픈 이슈, 실플레이 후 조정 가능).
+  var POODLE_SIZE_SCALE = { small:0.70, medium:0.85, standard:1.00 };
+  var POODLE_SIZE_LABEL = { small:"소형", medium:"미디엄", standard:"스탠다드" };
+  var POODLE_SIZE_CLASSES = ["small","medium","standard"];
+  function breedSizeScale(){
+    if(typeof state === "undefined") return 1;
+    if(state.breed === "poodle" && state.breedSizeClass && POODLE_SIZE_SCALE[state.breedSizeClass] != null){
+      return POODLE_SIZE_SCALE[state.breedSizeClass];
+    }
+    return 1;
+  }
   // 37번: 성장 단계 시스템(기획문서 9장, 1차 확정) — 이동장에서 반려견을 만나는 순간(온보딩) 4단계 중
   // 하나가 시작 성장단계로 25%씩 균등 확률 배정됨. 기존에 있던 STAGE_NAMES/stageIndex/STAGE_THRESHOLDS
   // (유대감 누적치로 아기→청소년→성견을 가르는, 반려견 실루엣용 완전히 별개의 시스템)와 이름이 겹치지

@@ -7,6 +7,7 @@
     chosenMixParents = null;
     chosenMixGeoBreed = null;
     chosenMixStatMethod = null;
+    chosenPoodleSize = null;
     buildCrateGrid();
     el.stepShelter.hidden = false;
     el.stepSizeHint.hidden = true;
@@ -32,6 +33,8 @@
     // 29번: 시고르자브(믹스견) — 매칭된 두 견종 정보를 저장해 픽셀 실루엣·모색/눈동자 풀에 계속 활용
     state.mixParents = chosenMixParents ? chosenMixParents.slice() : null;
     state.mixGeoBreed = chosenMixGeoBreed || null;
+    // 78번(24장): 푸들일 때만 채워짐 — 그래픽 크기 클래스(스탯·고유능력은 3사이즈 공통).
+    state.breedSizeClass = (state.breed === "poodle") ? (chosenPoodleSize || "standard") : null;
     // 31번: 견종별 시작 스탯표(2026-09-01 기획 문서) 반영 — 순종은 마스터 표 값을, 시고르자브는
     // 1단계 부모 혼합 로직(부견쪽45%/모견쪽45%/완전랜덤10%) 결과를 사용.
     // 37번(기획문서 9장, 성장 단계 시스템): 이 결과값은 더 이상 "시작값"이 아니라 이 개체가 도달할 수
