@@ -35,7 +35,17 @@
     if(breedId === "mix" && mixParents && mixParents.length === 2){
       return computeMixBaseStats(mixParents[0], mixParents[1], mixMethod);
     }
-    return BREED_BASE_STATS[breedId] || BREED_BASE_STATS.golden;
+    var base = BREED_BASE_STATS[breedId] || BREED_BASE_STATS.golden;
+    // 78-1번(사용자 수정 요청): 푸들만 근력이 사이즈 클래스별로 달라짐(소형25/미디엄35/스탠다드55).
+    // 이 시점엔 이미 startBtn 핸들러(024번)가 state.breedSizeClass를 확정해둔 뒤라 그대로 읽을 수 있음.
+    if(breedId === "poodle"){
+      var sizeClass = (typeof state !== "undefined" && state.breedSizeClass) || "standard";
+      var overridden = {};
+      Object.keys(base).forEach(function(k){ overridden[k] = base[k]; });
+      if(POODLE_POWER_BY_SIZE[sizeClass] != null) overridden.power = POODLE_POWER_BY_SIZE[sizeClass];
+      return overridden;
+    }
+    return base;
   }
 
   function shuffledBreeds(){

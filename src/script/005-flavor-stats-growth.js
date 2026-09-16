@@ -51,24 +51,35 @@
   var BREED_BASE_STATS = {
     golden:   { power:73, agility:48, comprehension:85, execution:85, loyalty:55, affinity:95, health:50, aggression:20 },
     labrador: { power:78, agility:55, comprehension:85, execution:85, loyalty:78, affinity:75, health:55, aggression:30 },
-    jindo:    { power:70, agility:75, comprehension:75, execution:55, loyalty:95, affinity:35, health:90, aggression:65 },
+    // 78-1번(사용자 수정 요청): 진돗개 근력 70→60으로 하향.
+    jindo:    { power:60, agility:75, comprehension:75, execution:55, loyalty:95, affinity:35, health:90, aggression:65 },
     shiba:    { power:45, agility:70, comprehension:75, execution:45, loyalty:65, affinity:30, health:80, aggression:65 },
     border:   { power:55, agility:90, comprehension:98, execution:90, loyalty:70, affinity:60, health:60, aggression:45 },
     corgi:    { power:40, agility:65, comprehension:80, execution:65, loyalty:90, affinity:80, health:55, aggression:55 },
     pom:      { power:20, agility:55, comprehension:65, execution:40, loyalty:55, affinity:25, health:45, aggression:90 },
     husky:    { power:85, agility:75, comprehension:70, execution:30, loyalty:30, affinity:80, health:60, aggression:15 },
     shihtzu:  { power:15, agility:30, comprehension:55, execution:50, loyalty:50, affinity:90, health:45, aggression:10 },
-    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 반영): 신규 3종 — 3사이즈 전부 스탯 동일한 푸들 포함.
+    // 78번(24장, 고유능력_입력템플릿_v8.xlsx 반영): 신규 3종.
+    // 78-1번(사용자 수정 요청): 비숑프리제 근력 25→45로 상향.
     maltese:  { power:15, agility:50, comprehension:60, execution:40, loyalty:60, affinity:35, health:40, aggression:60 },
+    // 78-1번: 푸들은 근력만 사이즈별로 달라짐(소형25/미디엄35/스탠다드55) — 여기 적힌 값(55)은
+    // "스탠다드" 기준이자 사이즈 클래스가 없을 때의 기본값이고, 실제 적용값은 아래
+    // POODLE_POWER_BY_SIZE로 computeEffectiveBaseStats()에서 덮어씀. 근력을 제외한 나머지 7개
+    // 스탯·고유능력은 여전히 3사이즈 전부 완전히 동일.
     poodle:   { power:55, agility:70, comprehension:95, execution:90, loyalty:65, affinity:90, health:60, aggression:10 },
-    bichon:   { power:25, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
+    bichon:   { power:45, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
   };
-  // 78번: 푸들 전용 "크기 클래스" — 스탯·고유능력은 3사이즈 전부 동일, 그래픽 크기만 이 배율로 차등
-  // 적용됨(9장 성장단계 스케일과 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).
+  // 78번: 푸들 전용 "크기 클래스" — 그래픽 크기만 이 배율로 차등 적용됨(9장 성장단계 스케일과
+  // 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).
   // 배정 확률(균등 1/3)은 문서에 명시가 없어 개발팀이 기본값으로 채움(오픈 이슈, 실플레이 후 조정 가능).
   var POODLE_SIZE_SCALE = { small:0.70, medium:0.85, standard:1.00 };
   var POODLE_SIZE_LABEL = { small:"소형", medium:"미디엄", standard:"스탠다드" };
   var POODLE_SIZE_CLASSES = ["small","medium","standard"];
+  // 78-1번(사용자 수정 요청): "소형/중형/대형에 따라 근력수치를 25/35/55로" — 기존 3사이즈 크기
+  // 클래스(small/medium/standard)에 그대로 매핑(대형=standard). 근력만 사이즈별로 달라지는
+  // 유일한 스탯이며, computeEffectiveBaseStats()(023번)가 이 표로 BREED_BASE_STATS.poodle.power를
+  // 덮어씀 — 다른 7개 스탯·고유능력은 여전히 3사이즈 공통.
+  var POODLE_POWER_BY_SIZE = { small:25, medium:35, standard:55 };
   function breedSizeScale(){
     if(typeof state === "undefined") return 1;
     if(state.breed === "poodle" && state.breedSizeClass && POODLE_SIZE_SCALE[state.breedSizeClass] != null){
