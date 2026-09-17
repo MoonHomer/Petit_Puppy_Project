@@ -209,7 +209,10 @@
   }
 
   // 반려견(정면) — #walkPixelCanvas 전용, 투명 배경. drawWalkPixelDog()(002번)에서 매 프레임 호출됨.
-  function drawWalkFrontDog(ctx, t){
+  // 79번: drawPixelDog()(002번)와 동일한 방식 — 실제 realCtx 대신 임시 오프스크린에 그대로 그린 뒤
+  // 맨 끝에서 굵은 아웃라인을 두르고 한 번에 합성. 이하 기존 좌표/포즈 계산 로직은 전혀 변경하지 않음.
+  function drawWalkFrontDog(realCtx, t){
+    var ctx = getDogOffscreenCtx(PX_W, PX_H);
     var breedId = state.breed || "golden";
     // 29번 관례와 동일: 믹스견은 전용 구조 데이터가 없어, 온보딩 때 매칭된 두 견종 중 체구 출처로 뽑힌
     // 쪽의 정면 실루엣 구조(귀 모양 등)를 그대로 재사용.
@@ -373,4 +376,9 @@
       var mouthBarW = mouthStemH*2, mouthBarH = Math.max(1, headW*0.02);
       ctx.fillRect(headX-mouthBarW/2, mouthStemY+mouthStemH-mouthBarH, mouthBarW, mouthBarH);
     }
+
+    // 79번: 마당 화면(drawPixelDog)과 동일한 아웃라인 후처리 — 산책 POV 정면 실루엣도 굵은 다크브라운
+    // 테두리로 감싸 두 화면의 그래픽 스타일을 통일함.
+    applyAutoOutline(ctx, PX_W, PX_H, DOG_OUTLINE_COLOR);
+    realCtx.drawImage(ctx.canvas, 0, 0);
   }

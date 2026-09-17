@@ -78,6 +78,64 @@
     ctx.fillRect(cx - Math.round(r*0.6), cy - r, Math.max(1, Math.round(r*1.2)), Math.max(1, Math.round(r*0.6)));
   }
 
+  // 79번(그래픽 업그레이드): 유저가 보내준 "크로스스티치 픽셀아트" 레퍼런스들의 핵심 스타일 요소 —
+  // (1) 실루엣 전체를 감싸는 굵고 짙은 아웃라인, (2) 배경과 확실히 분리되는 또렷한 형태 — 를 기존
+  // drawPixelDog()/drawWalkFrontDog()의 세밀한 견종별 치수 로직은 전혀 건드리지 않고 덧입히기 위한
+  // 공용 후처리 유틸. 두 함수 모두 "실제 화면 ctx가 아니라 임시 오프스크린 캔버스에 평소처럼 그린 뒤,
+  // 픽셀 단위로 알파값을 검사해 실루엣 바깥 1칸을 어두운 아웃라인 색으로 채우고, 그 결과 비트맵을
+  // 최종적으로 원래 ctx에 한 번에 합성"하는 방식으로 이 함수를 사용함 — 견종별 좌표 계산은 100% 그대로
+  // 재사용되고, 오직 "그려진 결과물에 테두리를 두르는" 시각효과만 추가됨.
+  var DOG_OUTLINE_COLOR = "#2A2019"; // 모색 팔레트와 무관하게 항상 짙은 다크브라운으로 고정(레퍼런스 전 견종 공통)
+  var _dogOffCanvas = null, _dogOffCtx = null;
+  function getDogOffscreenCtx(w, h){
+    if(!_dogOffCanvas){
+      _dogOffCanvas = document.createElement("canvas");
+      _dogOffCtx = _dogOffCanvas.getContext("2d");
+    }
+    if(_dogOffCanvas.width !== w) _dogOffCanvas.width = w;
+    if(_dogOffCanvas.height !== h) _dogOffCanvas.height = h;
+    _dogOffCtx.clearRect(0, 0, w, h);
+    return _dogOffCtx;
+  }
+  function hexToRgbTriple(hex){
+    var m = /^#([0-9a-fA-F]{6})$/.exec(hex || "");
+    if(!m) return [42, 32, 25];
+    return [parseInt(m[1].slice(0,2),16), parseInt(m[1].slice(2,4),16), parseInt(m[1].slice(4,6),16)];
+  }
+  // offCtx에 이미 그려진 내용의 실루엣을 읽어, 그 바깥 경계(8방향 인접) 1칸을 outlineHex로 채움.
+  // 파이썬 프로토타입(pixel_proto)에서 검증한 "8방향 인접 셀 자동 아웃라인" 알고리즘을 캔버스
+  // getImageData/putImageData로 그대로 옮긴 것.
+  function applyAutoOutline(offCtx, w, h, outlineHex){
+    var img;
+    try{ img = offCtx.getImageData(0, 0, w, h); }catch(e){ return; } // 캔버스 미지원 환경 방어
+    var data = img.data;
+    var n = w*h;
+    var filled = new Uint8Array(n);
+    for(var i=0;i<n;i++){ filled[i] = data[i*4+3] > 10 ? 1 : 0; }
+    var rgb = hexToRgbTriple(outlineHex);
+    var toOutline = [];
+    for(var y=0;y<h;y++){
+      for(var x=0;x<w;x++){
+        var idx = y*w+x;
+        if(filled[idx]) continue;
+        var isEdge = false;
+        for(var dy=-1;dy<=1 && !isEdge;dy++){
+          for(var dx=-1;dx<=1;dx++){
+            if(dx===0 && dy===0) continue;
+            var nx=x+dx, ny=y+dy;
+            if(nx>=0 && nx<w && ny>=0 && ny<h && filled[ny*w+nx]){ isEdge = true; break; }
+          }
+        }
+        if(isEdge) toOutline.push(idx);
+      }
+    }
+    for(var k=0;k<toOutline.length;k++){
+      var p = toOutline[k]*4;
+      data[p]=rgb[0]; data[p+1]=rgb[1]; data[p+2]=rgb[2]; data[p+3]=255;
+    }
+    offCtx.putImageData(img, 0, 0);
+  }
+
   var pixelBlink = false, pixelTailFrame = false, pixelBobUp = false;
   var pixelBlinkTimer = null, pixelTailTimer = null, pixelBobTimer = null;
 
@@ -90,7 +148,14 @@
   // 동시에 다른 생김새·색상으로 그려야 할 때 쓰는 선택 인자. {breedId, furA, furADark, furB, furC, furD,
   // eyeColor, gv, sv, mood, noBadges}를 전달하면 전역 state 대신 이 값들을 사용 — 생략(undefined)하면
   // 기존처럼 항상 state(유저 자신의 개)를 그대로 읽어, 기존 호출부는 전부 그대로 안전.
-  function drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed, override){
+  function drawPixelDog(realCtx, groundRow, offsetX, forceEyesClosed, override){
+    // 79번: 이하 함수 본문은 전부 그대로 두고(견종별 치수·성장/무드/스탯 로직 무변경), 실제 화면
+    // realCtx 대신 임시 오프스크린 캔버스에 그린 뒤 맨 끝에서 아웃라인을 두르고 한 번에 합성함.
+    // ctx라는 이름을 그대로 재바인딩하므로 아래 250여 줄의 기존 ctx.fillRect(...) 호출은 단 한 줄도
+    // 손대지 않아도 자동으로 오프스크린 쪽에 그려짐. realCtx는 caller가 이미 걸어둔 transform
+    // (idle 포즈의 save/translate/rotate/scale 등)을 그대로 유지하고 있어, 마지막 drawImage 한 번에
+    // 그 변형이 동일하게 적용됨(각 도형에 개별 적용하던 것과 최종 결과는 동일).
+    var ctx = getDogOffscreenCtx(PX_W, PX_H);
     var ov = override || null;
     var breedId = (ov && ov.breedId) ? ov.breedId : (state.breed || "golden");
     // 29번: 믹스견은 전용 실루엣이 없어, 온보딩 때 매칭된 두 견종 중 체구 출처로 뽑힌 쪽의 픽셀 지오메트리를 그대로 재사용
@@ -213,6 +278,16 @@
     // 몸통
     ctx.fillStyle = furA;
     ctx.fillRect(bodyLeft, bodyTop + oy, bodyW, bodyH);
+
+    // 79번: 가슴/배 밝은 패치 — 유저가 보내준 레퍼런스 대부분이 공통적으로 갖고 있던 특징(몸통 앞쪽
+    // 아래에 furC 톤의 밝은 가슴털)을 견종 불문 공통으로 얹어 실루엣에 입체감을 더함. 머리가 붙는
+    // 몸통 앞쪽(오른쪽) 아래쪽에 배치.
+    var chestW = Math.max(1, Math.round(bodyW*0.4));
+    var chestH = Math.max(1, Math.round(bodyH*0.6));
+    var chestX = bodyRight - chestW - Math.round(bodyW*0.08);
+    var chestY = bodyBottom - chestH;
+    ctx.fillStyle = furC;
+    ctx.fillRect(chestX, chestY + oy, chestW, chestH);
 
     // 75번: 건강함 → 털 하이라이트(윤기) 레이어 강화 — 등줄기를 따라 옅은 밝은 띠를 얹어 표현
     if(sv.furShineAlpha > 0){
@@ -347,6 +422,12 @@
         ctx.fillRect(badgeStartX + bi*(badgeSize+badgeGap), badgeY + oy, badgeSize, badgeSize);
       }
     }
+
+    // 79번: 오프스크린에 다 그려진 실루엣에 굵은 아웃라인을 두른 뒤, 캐릭터가 실제로 보여야 할
+    // realCtx로 한 번에 합성(캐릭터가 idle 포즈 등으로 이미 걸어둔 transform은 realCtx 쪽에 그대로
+    // 남아있으므로 drawImage 한 번으로 기존과 동일하게 반영됨).
+    applyAutoOutline(ctx, PX_W, PX_H, DOG_OUTLINE_COLOR);
+    realCtx.drawImage(ctx.canvas, 0, 0);
   }
 
   // 27번: 픽셀모드 배경 — 기기 시각으로 낮/밤은 항상 정확히 반영하고, 위치 권한과 네트워크가
