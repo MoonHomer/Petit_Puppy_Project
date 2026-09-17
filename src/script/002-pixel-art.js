@@ -155,7 +155,18 @@
     // 손대지 않아도 자동으로 오프스크린 쪽에 그려짐. realCtx는 caller가 이미 걸어둔 transform
     // (idle 포즈의 save/translate/rotate/scale 등)을 그대로 유지하고 있어, 마지막 drawImage 한 번에
     // 그 변형이 동일하게 적용됨(각 도형에 개별 적용하던 것과 최종 결과는 동일).
-    var ctx = getDogOffscreenCtx(PX_W, PX_H);
+    // 79-1번(버그 수정): 오프스크린 캔버스를 PX_W×PX_H(150×100)로 고정해뒀던 게 원인이 되어, 이보다
+    // 넓은 실제 캔버스(예: [기다려 대회]의 #competitionCanvas, 290×108)에 그릴 때 offsetX가 150을
+    // 넘어가는 개체(대회 5단상 중 뒤쪽 슬롯들)가 오프스크린 밖으로 잘려 사라지고, 합성(drawImage)도
+    // (0,0)~(150,100) 영역에만 이뤄져 캔버스 나머지 부분이 비어 보이는 문제가 있었음(사용자가 실플레이 중
+    // 발견해 보고). 오프스크린 크기를 realCtx가 실제로 그려지는 캔버스의 물리적 크기(width/height 속성)에
+    // 맞춰 매 호출마다 동적으로 잡도록 수정 — 마당(pixelCanvas)·산책(walkPixelCanvas)·어질리티(agilityCanvas)는
+    // 전부 기존과 동일한 150×100이라 이 변경으로 달라지는 게 없고, 대회(competitionCanvas, 290×108)만
+    // 실제 캔버스 크기에 맞는 오프스크린을 받게 됨. realCtx.canvas가 없는 극단적 방어 상황에서만 기존
+    // PX_W/PX_H로 폴백.
+    var dogOffW = (realCtx && realCtx.canvas && realCtx.canvas.width) || PX_W;
+    var dogOffH = (realCtx && realCtx.canvas && realCtx.canvas.height) || PX_H;
+    var ctx = getDogOffscreenCtx(dogOffW, dogOffH);
     var ov = override || null;
     var breedId = (ov && ov.breedId) ? ov.breedId : (state.breed || "golden");
     // 29번: 믹스견은 전용 실루엣이 없어, 온보딩 때 매칭된 두 견종 중 체구 출처로 뽑힌 쪽의 픽셀 지오메트리를 그대로 재사용
@@ -426,7 +437,7 @@
     // 79번: 오프스크린에 다 그려진 실루엣에 굵은 아웃라인을 두른 뒤, 캐릭터가 실제로 보여야 할
     // realCtx로 한 번에 합성(캐릭터가 idle 포즈 등으로 이미 걸어둔 transform은 realCtx 쪽에 그대로
     // 남아있으므로 drawImage 한 번으로 기존과 동일하게 반영됨).
-    applyAutoOutline(ctx, PX_W, PX_H, DOG_OUTLINE_COLOR);
+    applyAutoOutline(ctx, dogOffW, dogOffH, DOG_OUTLINE_COLOR);
     realCtx.drawImage(ctx.canvas, 0, 0);
   }
 
