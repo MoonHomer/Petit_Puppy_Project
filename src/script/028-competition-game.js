@@ -172,12 +172,20 @@
   function competitionPlayerVisual(){
     var breedId = state.breed || "golden";
     if(breedId === "mix" && state.mixGeoBreed) breedId = state.mixGeoBreed;
+    // 80번: 스프라이트 조회용 coatId — 믹스견은 모색 출처 접두사가 지오메트리 견종(breedId)과 일치할
+    // 때만 넘기고, 그 외엔 null(drawPixelDog가 override 경로에서도 안전하게 절차적 렌더링으로 폴백).
+    var coatId = state.coatId || null;
+    if(state.breed === "mix" && coatId){
+      var mixPrefix = breedId + "_";
+      coatId = coatId.indexOf(mixPrefix) === 0 ? coatId.slice(mixPrefix.length) : null;
+    }
     return {
       breedId:breedId,
       furA: cssVar("--fur-a","#E7C79A"), furADark: cssVar("--fur-a-dark","#C79E68"),
       furB: cssVar("--fur-b","#B98A5E"), furC: cssVar("--fur-c","#EDEDED"), furD: cssVar("--fur-d","#4A4038"),
       eyeColor: cssVar("--eye-color","#4A4038"),
-      gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true
+      gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true,
+      coatId: coatId, stageIdx: 2
     };
   }
   function buildCompetitionOpponents(){
@@ -199,7 +207,9 @@
         visual:{
           breedId:breedId, furA:coat.fur.a, furADark:coat.fur.aDark, furB:coat.fur.b,
           furC: cssVar("--fur-c","#EDEDED"), furD: cssVar("--fur-d","#4A4038"), eyeColor: eye.hex,
-          gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true
+          gv: GROWTH_STAGE_VISUAL[2], sv: COMPETITION_NEUTRAL_SV, mood:"normal", noBadges:true,
+          // 80번: 상대견은 항상 순종(pool은 PURE_BREED_ORDER)이라 coat.id를 접두사 처리 없이 그대로 사용
+          coatId: coat.id, stageIdx: 2
         },
         eliminated:false, rank:null, bubble:null
       });

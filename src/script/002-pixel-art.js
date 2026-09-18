@@ -232,6 +232,36 @@
       furADark = mixHexToGrey(furADark, 0.32);
     }
 
+    // 80번(그래픽팀 협업): AI 스프라이트 파일럿 적용 — 절차적 드로잉 대신 미리 그려둔 견종별×성장단계별
+    // ×팔레트별 스프라이트 이미지가 있으면 그걸 합성하고, 없으면(아직 못 만든 조합·로딩 전·믹스견 등)
+    // 기존 절차적 드로잉으로 안전하게 폴백함. override(대회 상대견) 쪽은 coatId/stageIdx를 명시로
+    // 넘겨받고, 유저 자신의 개는 state.coatId/state.growthStage를 그대로 읽음. 믹스견(시고르자브)은
+    // 전용 스프라이트가 없으므로, 모색 출처 접두사가 지오메트리 견종(breedId)과 일치할 때만 스프라이트를
+    // 시도하고 그 외엔 coatId를 null로 둬 항상 절차적 드로잉으로 빠지게 함(그래픽팀 오픈이슈 5번).
+    var stageIdx = (ov && typeof ov.stageIdx === "number") ? ov.stageIdx : (typeof state.growthStage === "number" ? state.growthStage : 2);
+    var coatId = null;
+    if(ov){
+      coatId = ov.coatId || null;
+    } else {
+      coatId = state.coatId || null;
+      if(state.breed === "mix" && coatId){
+        var mixPrefix = breedId + "_";
+        coatId = coatId.indexOf(mixPrefix) === 0 ? coatId.slice(mixPrefix.length) : null;
+      }
+    }
+    var spriteImg = coatId ? getDogSpriteImage(breedId, stageIdx, coatId) : null;
+
+    if(spriteImg){
+      // 스프라이트 경로: 절차적 좌표(legH/bodyH/headH 등)는 배지 위치 계산 등에 계속 쓰이므로 그대로 두고,
+      // 실루엣만 이미지 한 장으로 대체. 체고(H)에 귀·꼬리 여유분(헤드룸)을 곱해 세로 크기를 잡고, 스프라이트
+      // 원본 가로세로 비율을 유지한 채 가로 크기를 산출 — groundRow(접지선)에 바닥을 맞추고 cx(중심)에 가로
+      // 중앙 정렬. Playwright 시각 확인으로 튜닝된 값(80번).
+      var spriteH = Math.round(H * 1.18);
+      var spriteW = Math.round(spriteH * (spriteImg.naturalWidth / spriteImg.naturalHeight));
+      var spriteLeft = cx - Math.round(spriteW/2);
+      var spriteTop = groundRow - spriteH + oy;
+      ctx.drawImage(spriteImg, spriteLeft, spriteTop, spriteW, spriteH);
+    } else {
     // 다리 — 앞다리/뒷다리 각 2개씩, "먼 쪽 다리 + 가까운 쪽 다리"로 겹쳐 그려 네 발 짐승처럼 보이게 함
     var legW = Math.max(1, Math.round(bodyW*0.14));
     var legGap = Math.max(1, Math.round(legW*0.85));
@@ -416,6 +446,7 @@
       ctx.fillRect(headLeft + Math.round(headW*0.30), eyeY + oy, lineW, 1);
       ctx.fillRect(headLeft + Math.round(headW*0.58), eyeY + oy, lineW, 1);
     }
+    } // 80번: spriteImg 유무 분기(if/else) 종료 — 이 아래 배지·아웃라인·합성은 두 경로 공통으로 계속 실행
 
     // 75번(21장): 능력 보유 → 시각적 표식(원칙만 반영) — 취득한 능력(catalog: 접두사) 하나당 머리 위에
     // 작은 점 하나씩, 최대 ABILITY_BADGE_MAX개까지만 그려 화면이 어지러워지지 않게 함. 긍정 능력은
