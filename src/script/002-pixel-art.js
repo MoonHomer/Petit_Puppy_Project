@@ -126,13 +126,31 @@
   // 실제로는 두 귀(쫑긋 선 귀) 사이의 정상적인 틈(원래 그림에서도 존재하던, 하늘이 비치는 V자 홈)이
   // 원인이었음. 80-2번에서 강아지 체고를 2배 넘게 키우면서 예전엔 몇 픽셀에 불과해 안 보이던 이 틈이
   // 최대 20px 안팎까지 커졌고, applyAutoOutline()이 이 틈도 외곽 실루엣과 똑같이 검은 테두리로 둘러
-  // 그리는 바람에 "구멍이 뚫린 것"처럼 보이게 됨(절차적 드로잉의 쫑긋 귀도 원래 같은 틈이 있었지만
-  // 마찬가지로 작아서 눈에 안 띄었을 뿐, 잠재적으로 같은 증상). 다리 사이·꼬리 옆 등 실루엣 아래쪽의
-  // "진짜" 오목한 부분(정상적으로 뚫려 보여야 하는 부분)은 절대 건드리면 안 되므로, 실루엣의 맨 위쪽
-  // (귀가 있는 구간)에서만, 그리고 그 구간이 "세로로 갈라진 여러 덩어리"로 보일 때만 그 갈라진 덩어리
-  // 사이 틈을 주변 색으로 메워 하나로 이어붙임 — 외곽선은 이렇게 메워진 뒤의 매끈한 실루엣을 따라
-  // 그려지므로 더 이상 구멍처럼 보이지 않음. 실루엣 아래쪽(몸통·다리·꼬리 부근)은 이 함수가 전혀
-  // 손대지 않아 기존 렌더링과 동일.
+  // 그리는 바람에 "구멍이 뚫린 것"처럼 보이게 됨. 다리 사이·꼬리 옆 등 실루엣 아래쪽의 "진짜" 오목한
+  // 부분(정상적으로 뚫려 보여야 하는 부분)은 절대 건드리면 안 되므로, 실루엣의 맨 위쪽(귀가 있는
+  // 구간)에서만 검사.
+  // 81번(그래픽팀 신규 스프라이트 반영 중 발견된 버그 수정): 위 80-3번 버전은 "구간이 여러 덩어리로
+  // 갈라져 보이면 폭에 상관없이 무조건 메움" 방식이었는데, 이번에 새로 반영한 레퍼런스 기반 스프라이트는
+  // (구버전 텍스트 프롬프트 그림과 달리) 쫑긋 선 귀 사이 틈이 훨씬 또렷하고 넓게(수십 px) 그려져 있어 —
+  // 이 진짜 귀 사이 여백까지 통째로 메워버리는 바람에 진돗개·허스키 등은 두 귀 사이가 "검은색 끈"처럼
+  // 이어 붙고, 보더콜리는 아예 머리 전체가 뭉개진 덩어리로 보이는 새 버그가 생김(유저 실플레이 테스트로
+  // 발견) — 정확히 80-3번이 고치려던 "작고 좁은 노이즈성 틈"과ม 오늘 반영한 "실제로 넓게 그려진 정상
+  // 귀 사이 여백"을 구분하지 못한 게 원인. 그래서 이제는 각 행에서 "인접한 두 덩어리 사이의 틈 폭"을
+  // 개별적으로 재서, MAX_NOTCH_WIDTH(px)보다 좁은 틈만 메우고 그보다 넓은 틈(진짜 귀 사이 여백)은
+  // 절대 손대지 않음. 이 값은 Playwright로 12견종×4성장단계를 어질리티·마당 두 배율 모두에서 직접
+  // 렌더링해 실측한 뒤 정함 — 정상적인 쫑긋 귀 견종(진돗개·허스키·시바견·웰시코기·보더콜리)은 모든
+  // 배율에서 항상 4px보다 훨씬 넓은 틈(최소 5px~최대 수십 px)을 보였고, 아주 작은 노이즈성 틈(예:
+  // 포메라니안 일부 성장단계)은 그보다 훨씬 좁았음 — 그 경계 안쪽인 3px로 보수적으로 설정.
+  // 81번 추가 수정: 폭 제한만으로는 부족한 사례가 하나 더 있었음 — 보더콜리는 이마의 흰색 블레이즈
+  // 무늬(양쪽 검은 귀 사이에 낀 좁고 흰 세로줄)가 다운스케일 과정에서 1~2px짜리 미세한 투명 틈을
+  // 만드는데, 이 틈도 폭 기준상 "좁은 노이즈성 틈"으로 오인돼 메워지면서 "가장 가까운 opaque 픽셀"을
+  // 왼쪽부터 찾다 보니 흰 블레이즈가 아니라 옆의 검은 귀 색을 주워 칠해버려 블레이즈 전체가 거의
+  // 사라지고 머리가 뭉개진 검은 덩어리로 보였음. 좁은 틈이라도 "메울 색"이 양쪽에서 서로 다르면(=서로
+  // 다른 무늬 경계를 잇는 것) 절대 메우지 않도록, 틈 좌우의 opaque 색이 비슷할 때만(NOTCH_COLOR_TOL
+  // 이내) 채우게 방어 추가 — 같은 색 영역 안의 순수한 다운스케일 틈만 메워지고, 서로 다른 색 무늬
+  // 사이(귀↔블레이즈 등)는 항상 원본 그대로 보존됨.
+  var NOTCH_MAX_GAP_PX = 3;
+  var NOTCH_COLOR_TOL = 40;
   function closeTopSilhouetteNotches(offCtx, w, h){
     var img;
     try{ img = offCtx.getImageData(0, 0, w, h); }catch(e){ return; }
@@ -152,28 +170,41 @@
     var scanRows = Math.max(3, Math.round(bboxH * 0.35));
     var changed = false;
     for(var y=minY; y<Math.min(h, minY+scanRows); y++){
-      var first=-1, last=-1;
+      // 이 행의 opaque 구간들을 [start,end] 배열로 모음
+      var runs = [];
+      var inRun = false, runStart = -1;
       for(var x=0; x<w; x++){
-        if(opaqueAt(x,y)){ if(first<0) first=x; last=x; }
+        var o = opaqueAt(x,y);
+        if(o && !inRun){ inRun = true; runStart = x; }
+        else if(!o && inRun){ inRun = false; runs.push([runStart, x-1]); }
       }
-      if(first<0) continue;
-      var runs=0, inRun=false;
-      for(var x3=first; x3<=last; x3++){
-        var o = opaqueAt(x3,y);
-        if(o && !inRun){ runs++; inRun=true; }
-        else if(!o){ inRun=false; }
-      }
-      if(runs <= 1) continue; // 이미 하나로 이어진 구간 — 손대지 않음(귀 사이 틈이 없는 견종은 여기서 항상 skip)
-      for(var x4=first; x4<=last; x4++){
-        if(opaqueAt(x4,y)) continue;
-        var srcIdx = -1;
-        for(var lx=x4-1; lx>=first; lx--){ if(opaqueAt(lx,y)){ srcIdx = y*w+lx; break; } }
-        if(srcIdx<0){ for(var rx=x4+1; rx<=last; rx++){ if(opaqueAt(rx,y)){ srcIdx = y*w+rx; break; } } }
-        if(srcIdx<0 && y+1<h && opaqueAt(x4,y+1)){ srcIdx = (y+1)*w+x4; }
-        if(srcIdx>=0){
-          var sp=srcIdx*4, dp=(y*w+x4)*4;
-          data[dp]=data[sp]; data[dp+1]=data[sp+1]; data[dp+2]=data[sp+2]; data[dp+3]=255;
-          changed = true;
+      if(inRun) runs.push([runStart, w-1]);
+      if(runs.length <= 1) continue; // 이미 하나로 이어진 구간(또는 완전히 빈 행) — 손대지 않음
+      // 인접한 두 덩어리 사이의 틈만 개별적으로 검사 — 폭이 NOTCH_MAX_GAP_PX 이하인 좁은 틈만 메움
+      for(var ri=0; ri<runs.length-1; ri++){
+        var gapStart = runs[ri][1] + 1;
+        var gapEnd = runs[ri+1][0] - 1;
+        var gapWidth = gapEnd - gapStart + 1;
+        if(gapWidth > NOTCH_MAX_GAP_PX) continue; // 넓은 틈(진짜 귀 사이 여백 등) — 절대 메우지 않음
+        // 틈 좌우의 색이 서로 다르면(=서로 다른 무늬 경계) 메우지 않음 — 위 주석의 보더콜리 블레이즈 사례 방어
+        var leftIdx = (y*w + runs[ri][1]) * 4;
+        var rightIdx = (y*w + runs[ri+1][0]) * 4;
+        var colorDist = Math.sqrt(
+          Math.pow(data[leftIdx]-data[rightIdx],2) +
+          Math.pow(data[leftIdx+1]-data[rightIdx+1],2) +
+          Math.pow(data[leftIdx+2]-data[rightIdx+2],2)
+        );
+        if(colorDist > NOTCH_COLOR_TOL) continue;
+        for(var x4=gapStart; x4<=gapEnd; x4++){
+          var srcIdx = -1;
+          for(var lx=x4-1; lx>=runs[ri][0]; lx--){ if(opaqueAt(lx,y)){ srcIdx = y*w+lx; break; } }
+          if(srcIdx<0){ for(var rx=x4+1; rx<=runs[ri+1][1]; rx++){ if(opaqueAt(rx,y)){ srcIdx = y*w+rx; break; } } }
+          if(srcIdx<0 && y+1<h && opaqueAt(x4,y+1)){ srcIdx = (y+1)*w+x4; }
+          if(srcIdx>=0){
+            var sp=srcIdx*4, dp=(y*w+x4)*4;
+            data[dp]=data[sp]; data[dp+1]=data[sp+1]; data[dp+2]=data[sp+2]; data[dp+3]=255;
+            changed = true;
+          }
         }
       }
     }
