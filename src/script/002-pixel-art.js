@@ -167,7 +167,13 @@
   // 동시에 다른 생김새·색상으로 그려야 할 때 쓰는 선택 인자. {breedId, furA, furADark, furB, furC, furD,
   // eyeColor, gv, sv, mood, noBadges}를 전달하면 전역 state 대신 이 값들을 사용 — 생략(undefined)하면
   // 기존처럼 항상 state(유저 자신의 개)를 그대로 읽어, 기존 호출부는 전부 그대로 안전.
-  function drawPixelDog(realCtx, groundRow, offsetX, forceEyesClosed, override){
+  // 80-2번(마당 화면 원근감 조정): sizeMult — 마당(pixelCanvas) 화면에서만 강아지를 실제 체구 비례와
+  // 무관하게 훨씬 크게(사용자 지정: 체고 60~65px) 그리기 위한 배율. 생략(undefined)하면 기존과 동일한
+  // 1배로, 어질리티·대회·엔딩씬 등 기존 모든 호출부는 전혀 영향받지 않음 — 아래 drawYardDog() 래퍼를
+  // 통해서만 이 값이 채워짐. H(체고)에 곱해지므로 다리·몸통·머리 등 하위 치수 전부가 비율 그대로
+  // 함께 커지고(절차적 경로), 스프라이트 경로도 H를 그대로 재사용해 자동으로 같은 비율로 커짐 —
+  // 150×100 논리 좌표계 안에서 계산되는 값이라 배경 픽셀과 크기 단위가 항상 맞아떨어짐(CSS 별도 확대 아님).
+  function drawPixelDog(realCtx, groundRow, offsetX, forceEyesClosed, override, sizeMult){
     // 79번: 이하 함수 본문은 전부 그대로 두고(견종별 치수·성장/무드/스탯 로직 무변경), 실제 화면
     // realCtx 대신 임시 오프스크린 캔버스에 그린 뒤 맨 끝에서 아웃라인을 두르고 한 번에 합성함.
     // ctx라는 이름을 그대로 재바인딩하므로 아래 250여 줄의 기존 ctx.fillRect(...) 호출은 단 한 줄도
@@ -202,7 +208,12 @@
     var sv = (ov && ov.sv) ? ov.sv : statVisual();
     // 78번: 푸들 소형/미디엄/스탠다드 크기 클래스 배율(breedSizeScale, 다른 견종은 항상 1)을
     // 성장단계 스케일과 곱연산으로 함께 적용 — 24장 사용자 지정 그대로.
-    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale * breedSizeScale()));
+    // 80-2번: sizeMult(마당 화면 전용, drawYardDog() 경유시에만 1이 아닌 값)를 H에 곱연산으로 추가.
+    // H 하나에서 L/legH/bodyH/headH/bodyW/headW 등 하위 치수가 전부 파생되므로(위 주석 참고), 절차적
+    // 경로는 비율 그대로 커지고, 스프라이트 경로도 targetH가 H*1.18이라 자동으로 동일 배율로 커짐 —
+    // 150×100 논리 좌표계 안에서 계산되는 값이라 배경 픽셀과 항상 크기 단위가 맞음(CSS 확대 아님).
+    var sizeMultVal = (typeof sizeMult === "number" && sizeMult > 0) ? sizeMult : 1;
+    var H = Math.max(6, Math.round(sc.heightCm / CM_PER_PX * gv.scale * breedSizeScale() * sizeMultVal));
     var L = Math.max(6, Math.round(H * sc.lengthRatio));
     // 민첩성: 다리 비율 소폭 조정
     var legH = Math.max(2, Math.round(H * sc.legRatio * sv.legHMult));
@@ -703,7 +714,23 @@
   // 렌더링을 캡처해 확인) 텍스트는 결국 빼고 빈 이름표만 둠 — 반려견 이름은 화면 상단에 이미 항상
   // 표시되고 있어(el.dogNameLabel) 여기서 다시 못 읽는 글씨로 욱여넣기보다 이 편이 낫다고 판단.
   // 커스텀 미니 비트맵 폰트를 새로 만들면 가능하지만 이번 라운드 범위 밖이라 다음 라운드 후보로 남김.
-  function drawDoghouse(ctx, groundRow){
+  // 80-2번: opts(선택) — {scale, x, groundRow}. 생략하면 완전히 기존과 동일(항등변환)이라 엔딩씬 등
+  // 기존 호출부는 전혀 영향받지 않음. 마당(drawPixelScene)에서만 "작고 훨씬 뒤(위)로 밀린" 개집을
+  // 그리기 위해 사용 — 함수 본문(x=6 기준 좌표식)은 한 글자도 안 건드리고, 원래 접지 기준점(x=6,
+  // groundRow)이 opts.x/opts.groundRow로 매핑되도록 좌표계 자체를 이동+축소함(translate→scale→
+  // 역translate 합성). 이 씬은 바닥이 4px 띠뿐인 평면 다이어그램이라 진짜 원근감은 없고, "더 작고 더
+  // 위(하늘 쪽)"로 배치하는 것으로 "멀리 있다"는 느낌만 근사함(사용자 확인: 이번엔 실사이즈 비례 무시 허용).
+  function drawDoghouse(ctx, groundRow, opts){
+    var scale = (opts && opts.scale) || 1;
+    var targetX = (opts && opts.x != null) ? opts.x : 6;
+    var targetGroundRow = (opts && opts.groundRow != null) ? opts.groundRow : groundRow;
+    var needsTransform = (opts != null);
+    if(needsTransform){
+      ctx.save();
+      ctx.translate(targetX, targetGroundRow);
+      ctx.scale(scale, scale);
+      ctx.translate(-6, -groundRow);
+    }
     var x = 6, w = 26, eave = 3, roofH = 11, bodyH = 16;
     var bodyY = groundRow - bodyH;
     var roofY = bodyY - roofH;
@@ -747,6 +774,10 @@
     ctx.fillRect(plateX, plateY, plateW, plateH);
     ctx.fillStyle = "#B99B68";
     ctx.fillRect(plateX, plateY, plateW, 1);
+
+    if(needsTransform){
+      ctx.restore();
+    }
   }
 
   function drawPixelScene(){
@@ -768,7 +799,11 @@
     ctx.fillRect(0, groundRow, PX_W, 1);
     ctx.globalAlpha = 1;
 
-    drawDoghouse(ctx, groundRow);
+    // 80-2번(마당 화면 원근감 조정): 개집은 제거하지 않고 화면 왼쪽 구석, 훨씬 작고 위(하늘 쪽, "저
+    // 멀리")로 밀어서 배치 — 강아지가 훨씬 크게 그려지면서(아래 drawPixelIdleDog→drawYardDog) 유저와
+    // 아주 가까운 전경, 개집은 저 뒤 배경 요소라는 원근 설정. 하늘 장식(해/달/별/구름, y≈8~40대)과
+    // 겹치지 않도록 y=62 기준(하단 접지)으로, 왼쪽 여백 확보를 위해 x=18 기준으로 배치.
+    drawDoghouse(ctx, groundRow, { scale: 0.42, x: 18, groundRow: 62 });
     drawPixelIdleDog(ctx, groundRow);
   }
 
@@ -827,26 +862,39 @@
     drawPixelScene();
   }
 
+  // 80-2번(마당 화면 원근감 조정): 마당(pixelCanvas, drawPixelScene→drawPixelIdleDog 경로) 화면에서만
+  // 강아지를 실사이즈 비례 무시하고 훨씬 크게(체고 약 60~65px, 150×100 논리 좌표계 기준) 그리기 위한
+  // 배율. 골든(체고 71cm, 대형견 기준)이 성체일 때 H≈37 → 스프라이트 표시 높이 H*1.18≈44px가 나오므로,
+  // 44*1.42≈62px로 목표 구간(60~65px) 중앙에 오도록 역산(Playwright로 실측 후 확정). H 하나에만 곱해
+  // 다리·몸통·머리 등 모든 하위 치수와(절차적 경로) 스프라이트 표시 높이(스프라이트 경로, H*1.18 그대로
+  // 재사용)가 함께 비례 확대됨 — 어질리티(026)·대회(028)·엔딩씬은 이 상수를 전혀 참조하지 않으므로
+  // 완전히 기존과 동일하게 유지됨(사용자 확인: "어질리티·대회 화면은 이번 조정 대상이 아님").
+  var YARD_DOG_SIZE_MULT = 2.1;
+  function drawYardDog(ctx, groundRow, offsetX, forceEyesClosed){
+    drawPixelDog(ctx, groundRow, offsetX, forceEyesClosed, null, YARD_DOG_SIZE_MULT);
+  }
+
   // 현재 멍멍모드 포즈에 맞춰 강아지를 그림 — 포즈가 없으면(기본 숨쉬기) 기존 drawPixelDog 그대로 호출.
   // 각 포즈는 drawPixelDog를 감싸는 간단한 캔버스 변형(이동/회전/스케일)과, 필요하면 위에 살짝 겹치는
   // 보조 표시(점선 시선·Zzz·움찔 자국 등)로 표현 — 스케치 확인 때 보여드린 컨셉을 실제 색이 입혀진
-  // 픽셀아트 위에 그대로 옮긴 것.
+  // 픽셀아트 위에 그대로 옮긴 것. 80-2번: 이 함수 내부의 모든 drawPixelDog 호출은 drawYardDog로 교체 —
+  // 마당 화면에서만 강아지가 커지도록 스코프를 이 함수 하나로 한정함(호출부는 drawPixelScene 단 하나).
   function drawPixelIdleDog(ctx, groundRow){
     var pose = pixelIdlePose;
-    if(!pose){ drawPixelDog(ctx, groundRow); return; }
+    if(!pose){ drawYardDog(ctx, groundRow); return; }
     var elapsed = Date.now() - pixelIdlePoseStartTs;
     var r = pixelIdlePoseDurMs > 0 ? Math.min(1, elapsed / pixelIdlePoseDurMs) : 1;
     var cx = Math.round(PX_W/2) + 2;
     switch(pose){
       case "IDLE-001": // 화면 밖 마실: 걸어나감 → 잠깐 사라짐 → 후다닥 복귀
-        if(r < 0.35){ drawPixelDog(ctx, groundRow, Math.round(70 * (r/0.35))); }
+        if(r < 0.35){ drawYardDog(ctx, groundRow, Math.round(70 * (r/0.35))); }
         else if(r < 0.65){ /* 화면 밖: 그리지 않음 */ }
-        else { drawPixelDog(ctx, groundRow, Math.round(70 * (1 - (r-0.65)/0.35))); }
+        else { drawYardDog(ctx, groundRow, Math.round(70 * (1 - (r-0.65)/0.35))); }
         break;
       case "IDLE-002": // 골똘히 쳐다보기: 살짝 고개를 든 자세 + 응시 방향 점선
         ctx.save();
         ctx.translate(cx, groundRow); ctx.rotate(-0.05); ctx.translate(-cx, -groundRow);
-        drawPixelDog(ctx, groundRow);
+        drawYardDog(ctx, groundRow);
         ctx.restore();
         ctx.strokeStyle = "#8A8370"; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
         ctx.beginPath(); ctx.moveTo(cx+10, groundRow-30); ctx.lineTo(cx+34, groundRow-46); ctx.stroke();
@@ -855,19 +903,19 @@
       case "IDLE-003": // 웅크려 잠들기: 낮게 웅크린 실루엣 + Zzz
         ctx.save();
         ctx.translate(cx, groundRow); ctx.scale(1, 0.62); ctx.translate(-cx, -groundRow);
-        drawPixelDog(ctx, groundRow, 0, true);
+        drawYardDog(ctx, groundRow, 0, true);
         ctx.restore();
         ctx.fillStyle = "#726B58"; ctx.font = "7px sans-serif"; ctx.fillText("Z z", cx+16, groundRow-44);
         break;
       case "IDLE-004": // 꿈꾸는 다리: 누운 채 다리가 움찔움찔 + Zzz
         ctx.save();
         ctx.translate(cx, groundRow); ctx.scale(1, 0.7); ctx.translate(-cx, -groundRow);
-        drawPixelDog(ctx, groundRow, (Math.floor(elapsed/220)%2===0) ? 1 : -1, true);
+        drawYardDog(ctx, groundRow, (Math.floor(elapsed/220)%2===0) ? 1 : -1, true);
         ctx.restore();
         ctx.fillStyle = "#726B58"; ctx.font = "7px sans-serif"; ctx.fillText("Z z", cx+16, groundRow-40);
         break;
       case "IDLE-005": // 뒷다리로 긁기: 제자리 + 긁는 동작 자국 깜빡임
-        drawPixelDog(ctx, groundRow);
+        drawYardDog(ctx, groundRow);
         if(Math.floor(elapsed/180) % 2 === 0){
           ctx.strokeStyle = "#C4482B"; ctx.lineWidth = 1;
           ctx.beginPath();
@@ -879,11 +927,11 @@
       case "IDLE-006": // 다운독 기지개: 앞으로 쭉 늘어난 실루엣
         ctx.save();
         ctx.translate(cx, groundRow); ctx.scale(1.12, 0.9); ctx.translate(-cx, -groundRow);
-        drawPixelDog(ctx, groundRow);
+        drawYardDog(ctx, groundRow);
         ctx.restore();
         break;
       case "IDLE-007": // 부르르 털기: 좌우로 빠르게 흔들림 + 물방울 튀는 선
-        drawPixelDog(ctx, groundRow, (Math.floor(elapsed/60) % 2 === 0) ? 1 : -1);
+        drawYardDog(ctx, groundRow, (Math.floor(elapsed/60) % 2 === 0) ? 1 : -1);
         ctx.strokeStyle = "#8A8370"; ctx.lineWidth = 1; ctx.setLineDash([1,2]);
         ctx.beginPath();
         ctx.moveTo(cx-24, groundRow-30); ctx.lineTo(cx-30, groundRow-34);
@@ -894,7 +942,7 @@
         // 위아래가 뒤집혀 보여 오히려 어색함) 제자리에서 작게 원을 그리며 도는 궤적으로 표현.
         var loopAngle = r * Math.PI * 2 * 1.6;
         var orbitX = Math.round(Math.sin(loopAngle) * 6);
-        drawPixelDog(ctx, groundRow, orbitX);
+        drawYardDog(ctx, groundRow, orbitX);
         ctx.strokeStyle = "#8A8370"; ctx.lineWidth = 1; ctx.setLineDash([1,2]);
         ctx.beginPath(); ctx.ellipse(cx, groundRow-6, 10, 3, 0, 0, Math.PI*2); ctx.stroke();
         ctx.setLineDash([]);
@@ -904,7 +952,7 @@
         var bowTilt = r < 0.65 ? -0.16 : 0;
         ctx.save();
         ctx.translate(cx, groundRow); ctx.rotate(bowTilt); ctx.translate(-cx, -groundRow);
-        drawPixelDog(ctx, groundRow);
+        drawYardDog(ctx, groundRow);
         ctx.restore();
         if(r < 0.65){
           ctx.strokeStyle = "#C4482B"; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
@@ -913,13 +961,13 @@
         }
         break;
       case "IDLE-010": // 뭔가 쫓기: 고개를 이리저리 + 작은 점(파리)이 움직임
-        drawPixelDog(ctx, groundRow, (Math.floor(elapsed/260) % 2 === 0) ? 2 : -2);
+        drawYardDog(ctx, groundRow, (Math.floor(elapsed/260) % 2 === 0) ? 2 : -2);
         ctx.fillStyle = "#C4482B";
         ctx.fillRect(cx + 20 + Math.round(Math.sin(elapsed/260) * 16), groundRow - 50 + Math.round(Math.cos(elapsed/310) * 6), 2, 2);
         break;
       case "IDLE-011": // 바닥 냄새 산책: 천천히 좌우로 어슬렁 + 냄새 자국
         var drift = Math.round(Math.sin(elapsed/900) * 10);
-        drawPixelDog(ctx, groundRow, drift);
+        drawYardDog(ctx, groundRow, drift);
         if(Math.floor(elapsed/300) % 2 === 0){
           ctx.strokeStyle = "#8A8370"; ctx.lineWidth = 1; ctx.setLineDash([1,2]);
           ctx.beginPath(); ctx.arc(cx+drift+16, groundRow-2, 5, Math.PI, 0); ctx.stroke();
@@ -927,7 +975,7 @@
         }
         break;
       default:
-        drawPixelDog(ctx, groundRow);
+        drawYardDog(ctx, groundRow);
     }
   }
 
