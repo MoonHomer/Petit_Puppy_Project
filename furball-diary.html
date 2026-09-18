@@ -2847,6 +2847,64 @@
     if(!m) return [42, 32, 25];
     return [parseInt(m[1].slice(0,2),16), parseInt(m[1].slice(2,4),16), parseInt(m[1].slice(4,6),16)];
   }
+  // 80-3번(그래픽팀 버그 리포트 반영): "정수리~이마 사이 투명한 구멍" 수정. 원인 조사 결과 스프라이트
+  // PNG 원본 자체엔 내부에 갇힌 투명 픽셀이 전혀 없음(직접 알파채널 디코딩해 flood-fill로 확인) —
+  // 실제로는 두 귀(쫑긋 선 귀) 사이의 정상적인 틈(원래 그림에서도 존재하던, 하늘이 비치는 V자 홈)이
+  // 원인이었음. 80-2번에서 강아지 체고를 2배 넘게 키우면서 예전엔 몇 픽셀에 불과해 안 보이던 이 틈이
+  // 최대 20px 안팎까지 커졌고, applyAutoOutline()이 이 틈도 외곽 실루엣과 똑같이 검은 테두리로 둘러
+  // 그리는 바람에 "구멍이 뚫린 것"처럼 보이게 됨(절차적 드로잉의 쫑긋 귀도 원래 같은 틈이 있었지만
+  // 마찬가지로 작아서 눈에 안 띄었을 뿐, 잠재적으로 같은 증상). 다리 사이·꼬리 옆 등 실루엣 아래쪽의
+  // "진짜" 오목한 부분(정상적으로 뚫려 보여야 하는 부분)은 절대 건드리면 안 되므로, 실루엣의 맨 위쪽
+  // (귀가 있는 구간)에서만, 그리고 그 구간이 "세로로 갈라진 여러 덩어리"로 보일 때만 그 갈라진 덩어리
+  // 사이 틈을 주변 색으로 메워 하나로 이어붙임 — 외곽선은 이렇게 메워진 뒤의 매끈한 실루엣을 따라
+  // 그려지므로 더 이상 구멍처럼 보이지 않음. 실루엣 아래쪽(몸통·다리·꼬리 부근)은 이 함수가 전혀
+  // 손대지 않아 기존 렌더링과 동일.
+  function closeTopSilhouetteNotches(offCtx, w, h){
+    var img;
+    try{ img = offCtx.getImageData(0, 0, w, h); }catch(e){ return; }
+    var data = img.data;
+    function opaqueAt(x, y){ return data[(y*w+x)*4+3] > 10; }
+    var minY = -1, maxY = -1;
+    for(var y=0; y<h && minY<0; y++){
+      for(var x=0; x<w; x++){ if(opaqueAt(x,y)){ minY = y; break; } }
+    }
+    if(minY < 0) return; // 완전히 빈 캔버스(방어)
+    for(var y2=h-1; y2>=minY && maxY<0; y2--){
+      for(var x2=0; x2<w; x2++){ if(opaqueAt(x2,y2)){ maxY = y2; break; } }
+    }
+    var bboxH = maxY - minY + 1;
+    // 귀는 항상 머리 꼭대기(실루엣 맨 위)에서 시작되므로, 이 범위 안에서만 검사 — 다리 사이 공간(맨
+    // 아래쪽)까지는 절대 닿지 않도록 넉넉히 보수적으로 35%로 제한.
+    var scanRows = Math.max(3, Math.round(bboxH * 0.35));
+    var changed = false;
+    for(var y=minY; y<Math.min(h, minY+scanRows); y++){
+      var first=-1, last=-1;
+      for(var x=0; x<w; x++){
+        if(opaqueAt(x,y)){ if(first<0) first=x; last=x; }
+      }
+      if(first<0) continue;
+      var runs=0, inRun=false;
+      for(var x3=first; x3<=last; x3++){
+        var o = opaqueAt(x3,y);
+        if(o && !inRun){ runs++; inRun=true; }
+        else if(!o){ inRun=false; }
+      }
+      if(runs <= 1) continue; // 이미 하나로 이어진 구간 — 손대지 않음(귀 사이 틈이 없는 견종은 여기서 항상 skip)
+      for(var x4=first; x4<=last; x4++){
+        if(opaqueAt(x4,y)) continue;
+        var srcIdx = -1;
+        for(var lx=x4-1; lx>=first; lx--){ if(opaqueAt(lx,y)){ srcIdx = y*w+lx; break; } }
+        if(srcIdx<0){ for(var rx=x4+1; rx<=last; rx++){ if(opaqueAt(rx,y)){ srcIdx = y*w+rx; break; } } }
+        if(srcIdx<0 && y+1<h && opaqueAt(x4,y+1)){ srcIdx = (y+1)*w+x4; }
+        if(srcIdx>=0){
+          var sp=srcIdx*4, dp=(y*w+x4)*4;
+          data[dp]=data[sp]; data[dp+1]=data[sp+1]; data[dp+2]=data[sp+2]; data[dp+3]=255;
+          changed = true;
+        }
+      }
+    }
+    if(changed) offCtx.putImageData(img, 0, 0);
+  }
   // offCtx에 이미 그려진 내용의 실루엣을 읽어, 그 바깥 경계(8방향 인접) 1칸을 outlineHex로 채움.
   // 파이썬 프로토타입(pixel_proto)에서 검증한 "8방향 인접 셀 자동 아웃라인" 알고리즘을 캔버스
   // getImageData/putImageData로 그대로 옮긴 것.
@@ -3219,6 +3277,9 @@
       }
     }
 
+    // 80-3번: 아웃라인을 두르기 전에, 실루엣 맨 위쪽(귀 부근)에 생길 수 있는 "갈라진 틈"을 먼저
+    // 메움 — 위 closeTopSilhouetteNotches() 정의부 주석 참고.
+    closeTopSilhouetteNotches(ctx, dogOffW, dogOffH);
     // 79번: 오프스크린에 다 그려진 실루엣에 굵은 아웃라인을 두른 뒤, 캐릭터가 실제로 보여야 할
     // realCtx로 한 번에 합성(캐릭터가 idle 포즈 등으로 이미 걸어둔 transform은 realCtx 쪽에 그대로
     // 남아있으므로 drawImage 한 번으로 기존과 동일하게 반영됨).
@@ -3525,11 +3586,10 @@
     ctx.fillRect(0, groundRow, PX_W, 1);
     ctx.globalAlpha = 1;
 
-    // 80-2번(마당 화면 원근감 조정): 개집은 제거하지 않고 화면 왼쪽 구석, 훨씬 작고 위(하늘 쪽, "저
-    // 멀리")로 밀어서 배치 — 강아지가 훨씬 크게 그려지면서(아래 drawPixelIdleDog→drawYardDog) 유저와
-    // 아주 가까운 전경, 개집은 저 뒤 배경 요소라는 원근 설정. 하늘 장식(해/달/별/구름, y≈8~40대)과
-    // 겹치지 않도록 y=62 기준(하단 접지)으로, 왼쪽 여백 확보를 위해 x=18 기준으로 배치.
-    drawDoghouse(ctx, groundRow, { scale: 0.42, x: 18, groundRow: 62 });
+    // 80-3번(그래픽팀 피드백 반영): 80-2번에서 시도했던 "개집을 작게 축소해 왼쪽 구석 하늘 쪽으로
+    // 배치"가 오히려 "공중에 붕 뜬 집"처럼 보인다는 피드백을 받아, 마당 화면에서는 개집을 아예 그리지
+    // 않기로 변경 — drawDoghouse() 함수 자체(및 opts 파라미터, 엔딩씬 호출부)는 그대로 남겨두고, 이
+    // 화면(drawPixelScene)의 호출 한 줄만 제거함. 엔딩씬의 개집 렌더링은 이 변경과 무관하게 그대로 유지.
     drawPixelIdleDog(ctx, groundRow);
   }
 
