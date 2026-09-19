@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>털복숭이 다이어리</title>
+<meta name="description" content="반려견을 먹이고 놀아주며 키우는 육성 다이어리 게임" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500;700&family=Gaegu:wght@400;700&display=swap">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="stage">
+  <div class="masthead">
+    <div class="brand">🐾쁘띠멍 프로젝트<small>JOURNEY WITH PUPPY</small></div>
+    <div class="masthead-right">
+      <div class="day-badge" id="dayBadge">1일째</div>
+      <!-- 64번(기획문서 15장): 게임 내 현재 시각(06~22시) 표시. render()의 gameClockLabel()로 채움. -->
+      <div class="game-clock-badge" id="gameClockBadge">🕕 오전 6시</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screenRoot">
+    <div class="id-row">
+      <div class="id-left">
+        <span class="id-name-text" id="dogNameLabel">댕댕이</span>
+        <span class="id-breed" id="breedTag">골든 리트리버</span>
+      </div>
+      <div class="id-right">
+        <span class="id-pill"><span class="id-pill-icon" aria-hidden="true">🦴</span><span id="coinCount">0</span></span>
+        <span class="id-pill"><span class="id-pill-icon" aria-hidden="true">🐾</span><span id="walkCountLabel">4/4</span></span>
+      </div>
+    </div>
+
+    <div class="yard" id="yard">
+      <canvas class="pixel-canvas" id="pixelCanvas" width="150" height="100" aria-hidden="true"></canvas>
+      <div class="cloud cloud-a"></div>
+      <div class="cloud cloud-b"></div>
+      <!-- 48번(기획문서 12장, 재작업): 30일 종료 엔딩씬을 별도 팝업이 아니라 이 마당 안에 바로 그림 —
+           #pixelCanvas 위에 겹쳐지는 암전 멘트(#endingBlackout)와 재접속 시 하단 캡션(#endingCaption).
+           평소엔 둘 다 숨겨져 있다가 엔딩이 시작될 때만(playEndingSequence/showEndingRestingFrame) 나타남. -->
+      <div class="ending-blackout" id="endingBlackout"><p id="endingBlackoutText"></p></div>
+      <p class="ending-caption" id="endingCaption" hidden></p>
+      <div class="msg-float" id="msgFloat"></div>
+      <div class="dog-wrap stage-0" id="dogWrap">
+        <div class="dog mood-happy" id="dogEl">
+          <div class="dog-tail"></div>
+          <div class="dog-body">
+            <div class="dog-paw l"></div>
+            <div class="dog-paw r"></div>
+          </div>
+          <div class="dog-head">
+            <div class="dog-ear l"></div>
+            <div class="dog-ear r"></div>
+            <div class="dog-patch"></div>
+            <div class="dog-eye l"></div>
+            <div class="dog-eye r"></div>
+            <div class="dog-cheek l"></div>
+            <div class="dog-cheek r"></div>
+            <div class="dog-snout">
+              <div class="dog-nose"></div>
+            </div>
+            <div class="dog-mouth"></div>
+            <div class="dog-collar"></div>
+            <div class="dog-tag"></div>
+          </div>
+          <span class="zzz">Z z</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-columns">
+      <div class="life-col">
+        <div class="life-panel">
+          <div class="group-label">견생만족도</div>
+          <!-- 62번: 라벨 3종 개칭(포만감→배부름, 청결정도→청결도, 자립감→에너지) + 노출 순서를
+               에너지-배부름-청결도-유대감-스트레스로 재배치. state.life.*의 내부 키(hunger/clean/
+               independence/bond/stress)와 계산 로직은 전부 그대로, 표시 텍스트·순서만 바뀜. -->
+          <div class="life-list">
+            <div class="life-row"><span class="life-label">에너지</span><span class="chip-emoji" id="valIndependence">😄</span></div>
+            <div class="life-row"><span class="life-label">배부름</span><span class="chip-emoji" id="valHunger">😄</span></div>
+            <div class="life-row"><span class="life-label">청결도</span><span class="chip-emoji" id="valClean">😄</span></div>
+            <div class="life-row"><span class="life-label">유대감</span><span class="chip-emoji" id="valLifeBond">😄</span></div>
+            <div class="life-row"><span class="life-label">스트레스</span><span class="chip-emoji" id="valStress">😄</span></div>
+          </div>
+        </div>
+        <!-- 45번(기획문서 11장): 견생만족도 패널 아래 남는 공간에 배치한 소통버튼 위젯. (a) 화면 조작이
+             일정 시간 없으면(TALK_BUTTON_IDLE_MS) 반려견이 스스로 말을 걸고, (b) 이 위젯을 직접 눌러
+             즉시 열 수도 있음 — 61번부터 (b) 수동 경로만 충전식(state.talkButton.charges, 최대
+             TALK_BUTTON_CHARGE_MAX)의 대상이고 (a)는 이 충전과 완전히 무관하게 그대로 동작(사용자 지시). -->
+        <button type="button" class="talk-widget" id="talkWidgetBtn">
+          <span class="talk-widget-icon" aria-hidden="true">💬</span>
+          <span class="talk-widget-label">소통버튼</span>
+          <span class="talk-widget-count" id="talkWidgetCount">0/10</span>
+        </button>
+      </div>
+
+      <div class="core-panel">
+        <div class="core-panel-head">
+          <div class="group-label">기본능력</div>
+          <span class="shop-hint" id="trainEnergyHint">지금 컨디션 😐</span>
+        </div>
+        <div class="core-grid">
+          <button type="button" class="core-cell" id="trainPower"><span class="core-label">근력</span><span class="chip-grade" id="valPower">A</span></button>
+          <button type="button" class="core-cell" id="trainAgility"><span class="core-label">민첩성</span><span class="chip-grade" id="valAgility">A</span></button>
+          <button type="button" class="core-cell" id="trainComprehension"><span class="core-label">이해력</span><span class="chip-grade" id="valComprehension">A</span></button>
+          <button type="button" class="core-cell" id="trainExecution"><span class="core-label">수행력</span><span class="chip-grade" id="valExecution">A</span></button>
+          <button type="button" class="core-cell" id="trainLoyalty"><span class="core-label">충성도</span><span class="chip-grade" id="valLoyalty">A</span></button>
+          <button type="button" class="core-cell" id="trainAffinity"><span class="core-label">친화력</span><span class="chip-grade" id="valAffinity">A</span></button>
+          <button type="button" class="core-cell" id="trainHealth"><span class="core-label">건강함</span><span class="chip-grade" id="valHealth">A</span></button>
+          <button type="button" class="core-cell" id="trainAggression"><span class="core-label">공격성</span><span class="chip-grade" id="valAggression">A</span></button>
+        </div>
+        <div class="confirm-box" id="trainConfirmBox">
+          <span>컨디션이 안 좋아 보여요. 그래도 훈련시킬까요?</span>
+          <div style="display:flex; gap:6px;">
+            <button class="confirm-no" id="trainConfirmNo">그만두기</button>
+            <button class="confirm-yes" id="trainConfirmYes">강행하기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip-banner" id="tipBanner">
+      <span class="tip-banner-badge">개꿀팁</span>
+      <span class="tip-banner-text" id="tipBannerText"><span class="tip-banner-text-inner" id="tipBannerTextInner"></span></span>
+    </div>
+
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn" id="navInfo"><span class="nav-icon" aria-hidden="true">👤</span><span class="nav-label">기본정보</span></button>
+      <button type="button" class="nav-btn" id="navOuting"><span class="nav-icon" aria-hidden="true">🚪</span><span class="nav-label">외출하기</span></button>
+      <button type="button" class="nav-btn" id="navCare"><span class="nav-icon" aria-hidden="true">🍖</span><span class="nav-label">기본돌봄</span></button>
+      <button type="button" class="nav-btn" id="navAttach"><span class="nav-icon" aria-hidden="true">🧺</span><span class="nav-label">애착바구니</span></button>
+      <button type="button" class="nav-btn" id="navDex"><span class="nav-icon" aria-hidden="true">📖</span><span class="nav-label">도감/일기</span></button>
+      <button type="button" class="nav-btn nav-walk" id="navWalk"><span class="nav-icon" aria-hidden="true">🐾</span><span class="nav-label">산책!</span></button>
+    </nav>
+  </div>
+</div>
+
+<div class="veil" id="infoVeil">
+  <div class="onboard subscreen">
+    <h2>기본정보</h2>
+    <div class="profile-row">
+      <span class="trait-pill breed" id="infoBreedTag">골든 리트리버</span>
+      <span class="trait-pill" id="personalityTag">외향적인</span>
+      <span class="trait-pill positive" id="passiveTag">튼튼함</span>
+    </div>
+    <div class="bond">
+      <div class="bond-top"><span class="stage-chip" id="stageChip">아기</span><span id="bondLabel">다음 단계까지 0 / 50</span></div>
+      <div class="bond-track"><div class="bond-fill" id="bondFill" style="width:0%"></div></div>
+    </div>
+    <div class="resume-card">
+      <div class="resume-card-head">
+        <div class="group-label">능력 카드</div>
+        <span class="resume-card-hint">코랄핑크=긍정 · 민트=부정 · 초록=중립</span>
+      </div>
+      <div class="resume-grid" id="resumeGrid"></div>
+    </div>
+    <div class="ability-group" id="friendGroup" hidden>
+      <div class="group-label">산책에서 만난 친구들</div>
+      <div class="ability-list" id="friendList"></div>
+    </div>
+    <div class="ability-group" id="itemGroup" hidden>
+      <div class="group-label">산책에서 주운 것들</div>
+      <div class="ability-list" id="itemList"></div>
+    </div>
+    <div class="foot">
+      <button class="reset-link" id="resetOpen">처음부터 다시 시작하기</button>
+    </div>
+    <div class="confirm-box" id="confirmBox">
+      <span>정말 모든 기록을 지우고 새로 시작할까요?</span>
+      <div style="display:flex; gap:6px;">
+        <button class="confirm-no" id="confirmNo">취소</button>
+        <button class="confirm-yes" id="confirmYes">시작</button>
+      </div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="infoBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="attachVeil">
+  <div class="onboard subscreen">
+    <h2>애착바구니</h2>
+    <p class="attach-desc">산책이나 활동에서 모으게 되는 것들을 담아두는 수집 보관함이에요. 아직 못 만난 칸은 물음표로, 모은 것들은 하나씩 채워져요!</p>
+    <div class="attach-card">
+      <div class="attach-tabs" id="attachTabs">
+        <button type="button" class="attach-tab page-1" data-page="0">1페이지</button>
+        <button type="button" class="attach-tab page-2" data-page="1">2페이지</button>
+        <button type="button" class="attach-tab page-3" data-page="2">3페이지</button>
+        <button type="button" class="attach-tab page-4" data-page="3">4페이지</button>
+        <button type="button" class="attach-tab page-5" data-page="4">5페이지</button>
+      </div>
+      <div class="attach-grid" id="attachGrid"></div>
+    </div>
+    <div class="attach-materials" id="attachMaterials" hidden>
+      <span class="attach-materials-label">재료 인벤토리</span>
+      <div class="attach-materials-chips" id="attachMaterialsChips"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="attachBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="careVeil">
+  <div class="onboard subscreen">
+    <h2>기본돌봄</h2>
+    <div class="actions">
+      <button class="act-btn act-feed" id="btnFeed"><div class="glyph"></div><div><span class="label">밥주기</span><small>배부름 +25</small></div></button>
+      <button class="act-btn act-play" id="btnPlay"><div class="glyph"></div><div><span class="label">놀아주기</span><small>스트레스 감소</small></div></button>
+      <button class="act-btn act-bath" id="btnBath"><div class="glyph"></div><div><span class="label">목욕시키기</span><small>청결도 +40</small></div></button>
+      <button class="act-btn act-treat" id="btnTreat"><div class="glyph"></div><div><span class="label">간식주기</span><small>배부름 +10</small></div></button>
+      <button class="act-btn act-rest" id="btnRest"><div class="glyph"></div><div><span class="label">쉬게하기</span><small>에너지 +20</small></div></button>
+      <button class="act-btn act-outing" id="btnOuting"><div class="glyph"></div><div><span class="label">잠시 나갔다 올게</span><small>현생의 시간</small></div></button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="careBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="outingVeil">
+  <div class="onboard subscreen">
+    <h2>외출하기</h2>
+    <div class="outing-grid">
+      <button type="button" class="outing-item outing-primary" id="outingShop"><span class="outing-icon" aria-hidden="true">🛍️</span><span>상점</span></button>
+      <button type="button" class="outing-item" id="outingAgility"><span class="outing-icon" aria-hidden="true">🏃</span><span>어질리티 연습장</span></button>
+      <button type="button" class="outing-item" id="outingCafe"><span class="outing-icon" aria-hidden="true">☕</span><span>애견카페</span></button>
+      <button type="button" class="outing-item" id="outingVet"><span class="outing-icon" aria-hidden="true">🩺</span><span>동물병원</span></button>
+      <button type="button" class="outing-item" id="outingGroom"><span class="outing-icon" aria-hidden="true">✂️</span><span>펫미용실</span></button>
+      <!-- 47번: [외출하기] 신규 항목 — 다른 준비중 4곳(어질리티 연습장 등)처럼 별도 화면으로 이동하지
+           않고, 눌렀을 때 화면 상단에 짧은 안내 멘트만 뜨고 [외출하기] 화면에 그대로 머무름. -->
+      <button type="button" class="outing-item outing-full" id="outingEvent"><span class="outing-icon" aria-hidden="true">🏆</span><span>대회/이벤트</span></button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="outingBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<!-- 74번(어질리티 연습장, 신규): [외출하기]의 준비중 placeholder였던 항목을 실제 미니게임으로 구현.
+     상단은 단순화한 쿼터뷰 코스 배경(캔버스, 026번 JS의 drawAgilityScene) 위에 기존 픽셀 반려견
+     (drawPixelDog 재사용)이 무작위로 어슬렁이고, 하단은 발바닥 5칸(뒤꿈치+발가락4) 순서기억 게임 —
+     좌(시스템 제시)/중(내 입력)/우(반려견 모방) 3열 구성. 하루 1회 제한(state.agility.playedToday),
+     [도전하기] 버튼을 누르는 즉시 뼈다귀20·에너지30·산책횟수1을 전부 차감(사용자 확정, AskUserQuestion).
+     총 3라운드, 라운드마다 준비(2초)→시스템 제시(칸당 1초×5)→시작(1초)→내 입력(타이머 5→4→3초로
+     라운드마다 감소)→반려견 모방 순으로 진행. -->
+<div class="veil" id="agilityVeil">
+  <div class="onboard subscreen agility-card">
+    <h2>어질리티 연습장</h2>
+    <div class="agility-scene" id="agilityScene" aria-hidden="true">
+      <canvas class="agility-scene-canvas" id="agilityCanvas" width="150" height="100"></canvas>
+      <!-- 74-1번(사용자 수정 요청): 유저 입력 칸 안에 있던 O/X 표시를 여기, 화면 중앙의 큰 입체감 풍선으로 옮김 —
+           평소엔 opacity:0/scale:0로 숨어있다가 클릭할 때마다 JS가 .pop 클래스를 다시 걸어 재생됨. -->
+      <div class="agility-feedback-balloon" id="agilityFeedbackBalloon" aria-hidden="true"><span id="agilityFeedbackMark"></span></div>
+    </div>
+    <div class="agility-intro" id="agilityIntro">
+      <p class="attach-desc">순서를 기억해서 우리 아이와 함께 어질리티 코스에 도전해봐요! 하루에 한 번만 도전할 수 있어요.</p>
+      <div class="agility-cost-row">
+        <span class="agility-cost-chip">🦴 20</span>
+        <span class="agility-cost-chip">⚡ 30</span>
+        <span class="agility-cost-chip">🐾 1</span>
+      </div>
+      <button type="button" class="start-btn" id="agilityStartBtn">도전하기</button>
+    </div>
+    <div class="agility-game" id="agilityGame" hidden>
+      <p class="agility-phase-banner" id="agilityPhaseBanner"></p>
+      <div class="agility-round-row">
+        <span class="agility-round-label" id="agilityRoundLabel">1 / 3 라운드</span>
+        <div class="agility-timer-track"><div class="agility-timer-fill" id="agilityTimerFill"></div></div>
+      </div>
+      <div class="agility-paws">
+        <div class="agility-paw-col">
+          <span class="agility-paw-label">시스템</span>
+          <div class="agility-paw" id="agilityPawSystem"></div>
+        </div>
+        <div class="agility-paw-col">
+          <span class="agility-paw-label">나</span>
+          <div class="agility-paw" id="agilityPawUser"></div>
+        </div>
+        <div class="agility-paw-col">
+          <span class="agility-paw-label" id="agilityDogName">댕댕이</span>
+          <div class="agility-paw" id="agilityPawDog"></div>
+        </div>
+      </div>
+    </div>
+    <div class="agility-result" id="agilityResult" hidden>
+      <h3>도전 결과</h3>
+      <p id="agilityResultText"></p>
+      <div class="walk-summary-stats" id="agilityResultStats"></div>
+      <button class="start-btn" id="agilityResultClose">확인</button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="agilityBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="shopVeil">
+  <div class="onboard subscreen">
+    <h2>상점</h2>
+    <!-- 69번: 상점을 [일반]/[소통버튼] 2개 탭으로 분리 — 애착바구니(attachTabs, 35·36번)와 같은
+         "탭 버튼 + data 속성 + active 클래스" 패턴을 재사용. -->
+    <div class="shop-tabs" id="shopTabs">
+      <button type="button" class="shop-tab active" data-tab="general">일반</button>
+      <button type="button" class="shop-tab" data-tab="talk">소통버튼</button>
+    </div>
+    <div class="shop" id="shopPageGeneral">
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
+      <div class="shop-grid">
+        <div class="shop-item">
+          <span class="name">고급 간식</span>
+          <span class="desc">배부름 +40, 스트레스 감소</span>
+          <button id="buySnack">10 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
+        </div>
+        <div class="shop-item">
+          <span class="name">공 장난감</span>
+          <span class="desc">스트레스 크게 감소, 유대감 소폭 상승</span>
+          <button id="buyToy">15 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
+        </div>
+      </div>
+    </div>
+    <!-- 69번: 소통버튼 신규 7종 — 45번 확정이던 "테스트 기간 무료"를 폐기하고 뼈다귀 10개로 유상화.
+         이해력/성장단계 게이팅은 여전히 정식 버전 설계로 보류, 지금은 뼈다귀 보유 조건만 확인. -->
+    <div class="shop" id="shopPageTalk" hidden>
+      <div class="shop-head"><span class="shop-hint">뼈다귀로 구매</span></div>
+      <div class="shop-grid" id="talkShopGrid"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="shopBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<!-- 76번(동물병원, 기획문서 22장 신규): [외출하기]의 준비중 placeholder였던 항목을 실제 진단/치료
+     화면으로 구현. 상점(shopVeil)과 같은 "탭 버튼 + data 속성 + active 클래스" 패턴을 그대로 재사용
+     — [진단받기](뼈다귀 3개, 횟수 제한 없음)로 은폐된(???) 디버프의 정체를 밝히고, [치료하기](1회당
+     뼈다귀 5개, 하루 최대 3회)로 밝혀진 디버프의 치료를 시도함. -->
+<div class="veil" id="vetVeil">
+  <div class="onboard subscreen">
+    <h2>동물병원</h2>
+    <div class="shop-tabs" id="vetTabs">
+      <button type="button" class="shop-tab active" data-tab="diagnose">진단받기</button>
+      <button type="button" class="shop-tab" data-tab="treat">치료하기</button>
+    </div>
+    <div class="shop" id="vetPageDiagnose">
+      <div class="shop-head"><span class="shop-hint">뼈다귀 3개 · 횟수 제한 없음</span></div>
+      <div class="shop-grid">
+        <div class="shop-item">
+          <span class="name">🩺 진단받기</span>
+          <span class="desc" id="vetDiagnoseHint">숨어있는 증상이 있는지 살펴봐요.</span>
+          <button id="vetDiagnoseBtn">3 <span class="coin-dot" style="width:10px;height:10px;"></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="shop" id="vetPageTreat" hidden>
+      <div class="shop-head"><span class="shop-hint">1회당 뼈다귀 5개 · 하루 최대 3회</span></div>
+      <div class="shop-grid" id="vetTreatGrid"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="vetBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<!-- 77번([기다려 대회] 신규): [외출하기]의 "대회/이벤트"(47번, 완전한 자리표시자였음) 첫 실제 콘텐츠.
+     초급/중급/상급/스페셜리스트 4단계 — 시상대(단상) 5개 위에 유저 개+상대견 4마리가 랜덤 배치되고,
+     [기다려] 버튼을 누르면 3초 게이지가 흐르며 1초마다 각 개별 성공/실패 판정, 실패하면 탈락(단상은
+     남고 개만 사라짐), 마지막 1마리가 남을 때까지 반복하는 서바이벌 형식(028번 JS). -->
+<div class="veil" id="competitionVeil">
+  <div class="onboard subscreen competition-card">
+    <h2>기다려 대회</h2>
+    <div class="competition-closed" id="competitionClosed" hidden>
+      <p class="attach-desc">준비 중, 오전 10시~오후5시에 참여가능해요!</p>
+    </div>
+    <div class="competition-tiers" id="competitionTierSelect" hidden>
+      <p class="attach-desc">단계를 선택해서 [기다려] 대회에 도전해봐요! (참여 시 뼈다귀 2개, 하루 1회)</p>
+      <div class="competition-tier-grid">
+        <button type="button" class="competition-tier" id="competitionTierBeginner" data-tier="beginner">
+          <span class="tier-name">초급대회</span>
+          <span class="tier-cond" id="competitionTierBeginnerCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierIntermediate" data-tier="intermediate">
+          <span class="tier-name">중급대회</span>
+          <span class="tier-cond" id="competitionTierIntermediateCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierAdvanced" data-tier="advanced">
+          <span class="tier-name">상급대회</span>
+          <span class="tier-cond" id="competitionTierAdvancedCond"></span>
+        </button>
+        <button type="button" class="competition-tier" id="competitionTierSpecialist" data-tier="specialist">
+          <span class="tier-name">스페셜리스트 대회</span>
+          <span class="tier-cond" id="competitionTierSpecialistCond"></span>
+        </button>
+      </div>
+    </div>
+    <div class="competition-arena" id="competitionArena" hidden>
+      <div class="competition-scene" id="competitionScene" aria-hidden="true">
+        <canvas class="competition-scene-canvas" id="competitionCanvas" width="290" height="108"></canvas>
+      </div>
+      <p class="competition-cycle-label" id="competitionCycleLabel"></p>
+      <div class="agility-round-row">
+        <div class="agility-timer-track"><div class="agility-timer-fill" id="competitionGaugeFill"></div>
+          <span class="competition-gauge-tick" style="left:32%"></span>
+          <span class="competition-gauge-tick" style="left:65%"></span>
+          <span class="competition-gauge-tick" style="left:97%"></span>
+        </div>
+      </div>
+      <button type="button" class="start-btn" id="competitionWaitBtn">기다려</button>
+    </div>
+    <div class="competition-result" id="competitionResult" hidden>
+      <h3 id="competitionResultTitle">대회 결과</h3>
+      <p id="competitionResultText"></p>
+      <div class="walk-summary-stats" id="competitionResultStats"></div>
+      <button class="start-btn" id="competitionResultClose">확인</button>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="competitionBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="placeholderVeil">
+  <div class="onboard subscreen placeholder-card">
+    <h2 id="placeholderTitle">준비중</h2>
+    <p>아직 준비 중인 기능이에요. 조금만 기다려주세요!</p>
+    <div class="back-row"><button type="button" class="back-btn" id="placeholderBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="onboardVeil">
+  <div class="onboard">
+    <div class="onboard-step" id="stepShelter">
+      <h2>보호센터에 도착했어요</h2>
+      <p>이동장 문 너머로는 잘 보이지 않아요. 어떤 아이가 있을지는, 열어보기 전까진 아무도 몰라요. 어떤 아이든 만나기 전까진 똑같이 소중하니까요.</p>
+      <div>
+        <label class="visually-hidden" id="crateLabel">이동장 선택</label>
+        <div class="crate-grid" id="crateGrid" role="group" aria-labelledby="crateLabel"></div>
+      </div>
+    </div>
+    <div class="onboard-step" id="stepSizeHint" hidden>
+      <h2>이동장을 살짝 들어봅니다</h2>
+      <p>이동장을 살펴보니 <b id="sizeHintWord">-</b>견인 것 같아 보여요!</p>
+      <button class="start-btn" id="sizeHintNext">다음</button>
+    </div>
+    <div class="onboard-step" id="stepEyeColor" hidden>
+      <h2>문틈으로 눈이 마주쳤어요</h2>
+      <p>사랑스럽게 나를 바라보는 강아지의 눈을 부드럽게 응시해봅니다. 어떤 눈 색을 가지고 있나요?</p>
+      <div>
+        <label class="visually-hidden" id="eyeColorLabel">눈동자 색 선택</label>
+        <div class="palette-grid" id="eyeColorGrid" role="group" aria-labelledby="eyeColorLabel"></div>
+      </div>
+    </div>
+    <div class="onboard-step" id="stepCoatColor" hidden>
+      <h2>문이 활짝 열렸어요</h2>
+      <p>당신의 눈을 바라본 강아지가 기분이 좋은 듯 꼬리를 살랑거립니다. 강아지의 모색이 보이네요! 너무 사랑스러워요!</p>
+      <div>
+        <label class="visually-hidden" id="coatColorLabel">모색 선택</label>
+        <div class="palette-grid" id="coatColorGrid" role="group" aria-labelledby="coatColorLabel"></div>
+      </div>
+    </div>
+    <div class="onboard-step" id="stepReveal" hidden>
+      <h2>문을 열어보니...</h2>
+      <div class="reveal-list">
+        <div class="reveal-item"><span class="rk">견종</span><span class="rv" id="revealBreed">-</span></div>
+        <div class="reveal-item"><span class="rk">눈동자색</span><span class="rv" id="revealEyeColor">-</span></div>
+        <div class="reveal-item"><span class="rk">모색</span><span class="rv" id="revealCoat">-</span></div>
+        <div class="reveal-item"><span class="rk">성격</span><span class="rv" id="revealPersonality">-</span></div>
+        <div class="reveal-item"><span class="rk">특징</span><span class="rv" id="revealPassive">-</span></div>
+      </div>
+      <p id="revealFlavor" style="font-size:0.78rem;"></p>
+      <div>
+        <label for="nameInput">이 아이의 이름을 지어주세요</label>
+        <input type="text" id="nameInput" maxlength="10" placeholder="예: 초코" />
+      </div>
+      <button class="start-btn" id="startBtn">이 아이와 함께 시작하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="veil" id="walkVeil">
+  <div class="onboard walk-card">
+    <div class="walk-topbar">
+      <span class="walk-title" id="walkTitle">산책 중</span>
+      <span class="walk-count" id="walkEventCount">0번째 이야기</span>
+    </div>
+    <div class="walk-head">
+      <span class="walk-face" id="walkFace" aria-hidden="true">🙂</span>
+      <div class="walk-stamina-wrap">
+        <div class="walk-stamina-track"><div class="walk-stamina-fill" id="walkStaminaFill"></div></div>
+        <span class="walk-stamina-label" id="walkStaminaLabel">산책체력 좋아요</span>
+      </div>
+    </div>
+    <div class="walk-scene" id="walkScene" aria-hidden="true">
+      <canvas class="walk-pov-canvas" id="walkPovCanvas" width="150" height="100" aria-hidden="true"></canvas>
+      <div class="walk-dog-track" id="walkDogTrack">
+        <div class="dog-wrap walk-dog-wrap stage-0" id="walkDogWrap">
+          <div class="dog mood-happy" id="walkDogEl">
+            <div class="dog-tail"></div>
+            <div class="dog-body">
+              <div class="dog-paw l"></div>
+              <div class="dog-paw r"></div>
+            </div>
+            <div class="dog-head">
+              <div class="dog-ear l"></div>
+              <div class="dog-ear r"></div>
+              <div class="dog-patch"></div>
+              <div class="dog-eye l"></div>
+              <div class="dog-eye r"></div>
+              <div class="dog-cheek l"></div>
+              <div class="dog-cheek r"></div>
+              <div class="dog-snout">
+                <div class="dog-nose"></div>
+              </div>
+              <div class="dog-mouth"></div>
+              <div class="dog-collar"></div>
+              <div class="dog-tag"></div>
+            </div>
+          </div>
+        </div>
+        <div class="walk-pixel-pose" id="walkPixelPoseWrap">
+          <canvas class="walk-pixel-canvas" id="walkPixelCanvas" width="150" height="100" aria-hidden="true"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="walk-book" id="walkBook">
+      <div class="walk-log" id="walkLog">
+        <div class="walk-log-entry">
+          <p class="walk-narrative">산책로에 들어섰어요. 어떤 이야기가 기다리고 있을까요?</p>
+        </div>
+      </div>
+    </div>
+    <div class="walk-summary" id="walkSummaryBox" hidden>
+      <h2>산책을 마쳤어요!</h2>
+      <p id="walkSummaryText"></p>
+      <div class="walk-summary-meta" id="walkSummaryMeta"></div>
+      <div class="walk-summary-stats" id="walkSummaryStats"></div>
+      <div class="walk-summary-items" id="walkSummaryItemSection" hidden>
+        <div class="walk-summary-items-h">주워 온 것들</div>
+        <div class="walk-chips" id="walkSummaryItemChips"></div>
+      </div>
+      <button class="start-btn" id="walkSummaryClose">확인</button>
+    </div>
+    <button class="reset-link" id="walkReturnBtn">산책 그만하고 돌아가기</button>
+  </div>
+</div>
+
+<!-- 36번: [산책!] 클릭 시 산책 진행 화면(walkVeil) 전에 여는 산책 장소 선택 팝업. 동화책이 펼쳐지듯
+     장소 카드들이 팝업되는 연출(walk-place-pop 애니메이션)로 도입했고, 58번(엑셀 왕복 v4 반영)에서
+     장소별 실제 차등 효과(지역 전용 이벤트 20종씩 + 공통 이벤트 등장 확률)까지 이어서 구현함 —
+     WALK_REGIONS/pickWalkEvent() 참고. -->
+<div class="veil" id="walkPlaceVeil">
+  <div class="onboard subscreen walk-place-card">
+    <h2>어디로 산책 갈까요?</h2>
+    <p class="attach-desc">장소마다 만나게 되는 이야기가 조금씩 달라요. 원하는 곳을 골라주세요!</p>
+    <div class="walk-place-grid" id="walkPlaceGrid"></div>
+    <div class="back-row"><button type="button" class="back-btn" id="walkPlaceBackBtn">돌아가기</button></div>
+  </div>
+</div>
+
+<!-- 45번(기획문서 11장): 소통버튼 팝업 — [산책!] 버튼을 눌렀을 때 여는 walkVeil과 같은 "펼쳐지는
+     팝업 카드" 패턴을 그대로 재사용. 화면 조작이 일정 시간 없으면 반려견이 스스로 말을 걸며 자동으로도
+     열리고, 견생만족도 하단의 소통버튼 위젯을 직접 눌러서도 열 수 있음 — 61번부터 후자만 충전식
+     사용 횟수(최대 TALK_BUTTON_CHARGE_MAX)를 소모함. 팝업이 열리면 보유한 소통버튼들이 격자로 뜨고,
+     그중 몇 개를 반려견 발(🐾)이 순서대로 "누르는" 연출과 함께 그 버튼들의 글자가 하단에 쌓여
+     표시됨 — 유저가 직접 버튼을 눌러 조합하는 게 아니라 반려견이 스스로 표현하는 구조(기획 문서
+     11장 "유저가 직접 누르는 게 아니라 반려견이 누름" 그대로). -->
+<div class="veil" id="talkVeil">
+  <div class="onboard subscreen talk-card">
+    <h2>소통버튼</h2>
+    <p class="attach-desc" id="talkUsedHint">소통버튼을 사용했어요</p>
+    <div class="talk-btn-grid" id="talkBtnGrid"></div>
+    <div class="talk-said-box" id="talkSaidBox" hidden>
+      <div class="talk-said-label">말하고 싶은 건...</div>
+      <div class="talk-said-words" id="talkSaidWords"></div>
+    </div>
+    <div class="back-row"><button type="button" class="back-btn" id="talkCloseBtn">확인</button></div>
+  </div>
+</div>
+
+<!-- 64번(기획문서 15장): 하루 종료 시퀀스 — 뼈다귀 소모 행동으로 게임 내 시간이 22시(DAY_END_HOUR)에
+     도달하면 playDayEndSequence()가 자동으로 열고 닫는 전용 veil. 안에는 문구 하나(#dayEndText)만
+     있고, 그 문구가 멘트 → "우리가 함께한지 n일차도 지나간다멍" → "임시보호 (n+1)일차" 순서로 페이드
+     전환되며 바뀜(CSS의 .day-end-text.show 참고). 시퀀스가 끝나면 JS가 스스로 닫으므로 닫기/뒤로가기
+     버튼은 두지 않음(다른 veil들과 달리 유저 조작으로 여닫는 팝업이 아님). 사용자 피드백(2026-09-04)
+     반영: 좁은 카드(.onboard) 래퍼를 없애고 #dayEndVeil 자체가 뷰포트 전체를 덮는 페이드 레이어가
+     되도록 구조를 단순화(CSS 쪽 설명 참고) — 화면 전체(마스트헤드·하단 내비·산책 버튼 포함)가 함께
+     암전됐다가 복귀함. -->
+<div class="veil" id="dayEndVeil">
+  <p class="day-end-text" id="dayEndText"></p>
+</div>
+
+<!-- 36번: [기본정보] 능력 카드·[애착바구니] 수집물 공용 설명 팝업(요청 3·4번) — 모바일에선 title 속성
+     (마우스 호버) 툴팁이 뜨지 않아, 탭하면 이 팝업이 뜨고 [닫기]로 닫히도록 함. 어느 veil 위에서도
+     덮이도록 veil보다 z-index를 높게 둠(CSS 참고). -->
+<div class="desc-popup" id="descPopup" hidden>
+  <div class="desc-popup-box">
+    <h3 id="descPopupTitle"></h3>
+    <p id="descPopupText"></p>
+    <button type="button" class="start-btn" id="descPopupClose">닫기</button>
+  </div>
+</div>
+
+<!-- 77번([기다려 대회] 신규): 초급대회 최초 해금 시(임시보호 2일차 오전 9시 이후) 딱 한 번만 뜨는
+     안내 팝업 — descPopup과 같은 오버레이 구조를 재사용하지만, 배경(veil) 클릭으로는 닫히지 않고
+     오직 [확인] 버튼을 눌러야만 사라짐(사용자 지시: "유저가 확인 눌러야 사라지는 방식"). -->
+<div class="desc-popup" id="competitionAnnouncePopup" hidden>
+  <div class="desc-popup-box">
+    <h3>🏆 기다려 대회</h3>
+    <p id="competitionAnnounceText"></p>
+    <button type="button" class="start-btn" id="competitionAnnounceClose">확인</button>
+  </div>
+</div>
+
+<!-- 46번: 소통버튼 유휴 트리거 확인 팝업 — 45번 설계였던 "화면이 켜진 채 30초마다 무조건 자동 발동"을
+     수정: 화면 조작이 30초간 없을 때(진짜 유휴 상태)만 뜨고, 61번의 수동 경로 충전식과 완전히
+     별개로 동작(사용자 지시로 그대로 유지). 여기서 [호응해준다]를 눌러야만 실제 소통버튼 팝업이
+     열리고, [무시한다]를 누르면 그냥 닫힘.
+     64번(사용자 피드백, 2026-09-04): 버튼 순서를 [호응해준다]→[무시한다]로 교체(각자 원래 갖고
+     있던 스타일 클래스 confirm-yes/confirm-no도 그대로 함께 옮김) — 기존엔 [무시한다]가 먼저 나와
+     "부정적 선택이 기본값처럼" 보였던 배치를 [호응해준다]가 먼저 나오도록 바꿈. 두 선택 모두 유대감에
+     영향을 줌 — [호응해준다] 유대감+2, [무시한다] 유대감-2(핸들러는 JS 쪽 el.talkIdleYes/talkIdleNo
+     addEventListener 참고). -->
+<div class="desc-popup" id="talkIdlePopup" hidden>
+  <div class="desc-popup-box">
+    <p id="talkIdlePopupText"></p>
+    <div style="display:flex; gap:6px; justify-content:center;">
+      <button type="button" class="confirm-yes" id="talkIdleYes">호응해준다</button>
+      <button type="button" class="confirm-no" id="talkIdleNo">무시한다</button>
+    </div>
+  </div>
+</div>
+
+<!-- 59번(58번 3~5번, 주인 개입 시스템 신규): [주인 개입여부]="개입함"인 산책 이벤트(HOME-003·PARK-003·
+     MTN-003·LAKE-003·CITY-004)가 뜨면 자동 진행을 멈추고 이 팝업으로 O/X 또는 선택지를 물어본 뒤,
+     고른 선택에 따라 다른 스탯 효과를 적용함(엑셀의 [개입형태별 결과] 칸 그대로). 버튼 개수는
+     이벤트마다 다름(O/X형 2개·선택형 3개)이라 resolveWalkEvent()가 매번 동적으로 그려 넣음. -->
+<div class="desc-popup" id="walkIntervenePopup" hidden>
+  <div class="desc-popup-box">
+    <p id="walkIntervenePopupText"></p>
+    <div class="intervene-options" id="walkIntervenePopupBtns"></div>
+  </div>
+</div>
+
+<!-- 48번(기획문서 12장, 사용자 피드백으로 재작업): 30일 임시보호 종료 엔딩씬. 목표 달성/미달성
+     (찹찹츄 한정 이별 포함) 결과에 따라 반려견이 다시 나타나거나 편지만 남기고 떠남 — 판정 조건 로직은
+     아직 없어 무작위로 결정(오픈 이슈, 엔딩씬_프로토타입.html 그대로). 처음엔 이 씬 전체를 별도 팝업
+     화면(veil)으로 띄웠었는데, "원래 있던 화면에 그대로 구현해달라, 따로 팝업시킬 필요 없다"는 피드백을
+     반영해 아래 메인화면 마당(#yard, #pixelCanvas)에 직접 그리는 방식으로 재작업함 — 관련 마크업은
+     #yard 안에 있고(위 참고), 여기 남은 건 편지 "내용"을 읽는 작은 텍스트 팝업뿐임. 재생이 끝나면 닫는
+     버튼이 없이 그대로 이번 30일 테스트의 마지막 화면이 됨(사용자 확정: 컷씬 이후 조작 정지 —
+     .screen.ending-lock 규칙으로 마당을 제외한 나머지 화면을 잠금). 원안대로 유저의 픽셀모드 on/off
+     설정과 무관하게 항상 캔버스 픽셀 그래픽으로만 그려짐("복귀 화면은 클래식 픽셀 모드 고정"). -->
+
+<div class="desc-popup ending-letter-popup" id="endingLetterPopup" hidden>
+  <div class="desc-popup-box ending-letter-box">
+    <h3 id="endingLetterTitle"></h3>
+    <p id="endingLetterText" class="crayon-letter-body"></p>
+    <p class="ending-letter-note" id="endingLetterNote"></p>
+    <button type="button" class="start-btn" id="endingLetterClose">편지 접기</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
