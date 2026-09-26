@@ -362,6 +362,7 @@
     image-rendering:pixelated;
     image-rendering:crisp-edges;
   }
+  .pixel-canvas-hi{ pointer-events:none; } /* 84번: 원본 해상도 개 레이어 — 클릭은 아래 #pixelCanvas로 */
   .yard::after{
     content:"";
     position:absolute; left:0; right:0; bottom:0; height:46%;

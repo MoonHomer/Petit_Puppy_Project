@@ -526,7 +526,7 @@
 
   var el = {};
   ["dayBadge","gameClockBadge","dogNameLabel","coinCount","walkCountLabel","dogWrap","dogEl","msgFloat",
-   "yard","pixelCanvas","tipBanner","tipBannerText","tipBannerTextInner",
+   "yard","pixelCanvas","pixelDogHiCanvas","tipBanner","tipBannerText","tipBannerTextInner",
    "breedTag","infoBreedTag","personalityTag","passiveTag","stageChip",
    "valHunger","valClean","valLifeBond","valIndependence","valStress",
    "valPower","valAgility","valComprehension","valExecution",

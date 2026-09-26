@@ -105,6 +105,59 @@
     var y = Math.round(groundRow - h + oy);
     ctx.drawImage(img, x, y, w, h);
   }
+  // 83번: 애니메이션 시트(030-dog-anim-sheets.js)의 프레임 하나를 그림. 표시 크기는 기존 정지 스프라이트와
+  // 같은 targetH(H*1.18)를 0번 프레임(서기)의 실제 높이(DOG_ANIM_REF_H)에 맞추는 배율로 잡되, 그 배율이
+  // 정수에 가까우면 정수로 스냅해 픽셀이 고르게 보이게 함. 모든 프레임에 같은 배율을 쓰므로 컷 간 크기가
+  // 일정하고, 칸 바닥을 접지선(groundRow)에 맞춤. flip=true면 좌우 반전(시트 원본은 전부 왼쪽을 봄).
+  function drawDogAnimFrame(ctx, img, frame, cx, groundRow, targetH, flip){
+    ctx.imageSmoothingEnabled = false;
+    var s = targetH / DOG_ANIM_REF_H;
+    var si = Math.round(s);
+    if(si >= 1 && Math.abs(s - si) < 0.3) s = si;
+    var sx = (frame % DOG_ANIM_COLS) * DOG_ANIM_CELL_W;
+    var sy = Math.floor(frame / DOG_ANIM_COLS) * DOG_ANIM_CELL_H;
+    var dw = Math.round(DOG_ANIM_CELL_W * s), dh = Math.round(DOG_ANIM_CELL_H * s);
+    var x = Math.round(cx - dw/2), y = Math.round(groundRow - dh);
+    if(flip){
+      ctx.save();
+      ctx.translate(x + dw, 0); ctx.scale(-1, 1);
+      ctx.drawImage(img, sx, sy, DOG_ANIM_CELL_W, DOG_ANIM_CELL_H, 0, y, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, sx, sy, DOG_ANIM_CELL_W, DOG_ANIM_CELL_H, x, y, dw, dh);
+    }
+  }
+  // 84번: 고해상도판 프레임 그리기. 좌표는 150×100 논리 좌표(cx·groundRow)를 캔버스 배율(660/150=4.4)로
+  // 옮기고, 크기는 "논리 목표 높이×4.4 ÷ 원본 서기 높이"로 잡되 정수에 가까우면 정수로 스냅 — 웰시코기
+  // 성견은 이 값이 약 1.1이라 1로 스냅돼 원본 픽셀이 1:1 그대로 찍힘(리샘플링 없음).
+  function drawDogAnimFrameHi(hctx, img, frame, cx, groundRow, targetH, flip){
+    var k = hctx.canvas.width / PX_W;
+    hctx.imageSmoothingEnabled = false;
+    var s = targetH * k / DOG_ANIM_HI_REF_H;
+    var si = Math.round(s);
+    if(si >= 1 && Math.abs(s - si) < 0.3) s = si;
+    var sx = (frame % DOG_ANIM_COLS) * DOG_ANIM_HI_CELL_W;
+    var sy = Math.floor(frame / DOG_ANIM_COLS) * DOG_ANIM_HI_CELL_H;
+    var dw = Math.round(DOG_ANIM_HI_CELL_W * s), dh = Math.round(DOG_ANIM_HI_CELL_H * s);
+    var x = Math.round(cx * k - dw/2), y = Math.round(groundRow * k - dh);
+    if(flip){
+      hctx.save();
+      hctx.translate(x + dw, 0); hctx.scale(-1, 1);
+      hctx.drawImage(img, sx, sy, DOG_ANIM_HI_CELL_W, DOG_ANIM_HI_CELL_H, 0, y, dw, dh);
+      hctx.restore();
+    } else {
+      hctx.drawImage(img, sx, sy, DOG_ANIM_HI_CELL_W, DOG_ANIM_HI_CELL_H, x, y, dw, dh);
+    }
+  }
+  // 84번: 마당 위 고해상도 캔버스를 비움 — 매 장면 시작과 엔딩씬(021)에서 호출.
+  function yardHiCtx(){
+    var c = (typeof el !== "undefined" && el) ? el.pixelDogHiCanvas : null;
+    return (c && c.getContext) ? c.getContext("2d") : null;
+  }
+  function clearYardHiCanvas(){
+    var h = yardHiCtx();
+    if(h) h.clearRect(0, 0, h.canvas.width, h.canvas.height);
+  }
   var _dogOffCanvas = null, _dogOffCtx = null;
   function getDogOffscreenCtx(w, h){
     if(!_dogOffCanvas){
@@ -246,6 +299,14 @@
 
   var pixelBlink = false, pixelTailFrame = false, pixelBobUp = false;
   var pixelBlinkTimer = null, pixelTailTimer = null, pixelBobTimer = null;
+  // 83번: 마당 화면 전용 "애니메이션 시트 프레임" 요청 — drawPixelIdleDogAnim()이 drawYardDog() 직전에
+  // 프레임 번호(0~23)와 좌우 반전 여부를 여기에 넣어두면, drawPixelDog()가 정지 스프라이트 대신 시트의
+  // 해당 프레임을 그림. 그리기 직후 항상 null로 되돌려 어질리티·대회·엔딩씬 등 다른 호출부에는 절대
+  // 새지 않게 함(그쪽은 지금처럼 정지 스프라이트 그대로).
+  var dogAnimFrame = null, dogAnimFlip = false;
+  // 84번: 마당 화면이 프레임을 요청할 때만 채워지는 고해상도 캔버스 ctx(#pixelDogHiCanvas). 채워져 있고
+  // 고해상도 시트가 준비돼 있으면 개 본체를 이 캔버스에 원본 해상도(1:1)로 그림 — 역시 그리기 직후 null.
+  var dogAnimHiCtx = null;
 
   // 50번: offsetX — 기본은 마당 중앙(cx)이지만, 엔딩씬 '달성' 결과에서는 이동장이 있던 우측 자리에
   // 강아지가 다시 노출돼야 해서(사용자 원안: "이동장이 있던 자리에 반려견이 다시 노출됨") 그 지점으로
@@ -369,8 +430,20 @@
       }
     }
     var spriteImg = coatId ? getDogSpriteImage(breedId, stageIdx, coatId) : null;
+    // 83번: 마당 화면이 애니메이션 프레임을 요청했고(dogAnimFrame) 이 견종·단계·모색의 시트가 있으면
+    // 그 프레임을 그림 — 시트 원화에 이미 외곽선이 있으므로 아래의 귀 틈 메우기·자동 외곽선은 건너뜀
+    // (그래픽 자산을 "최대한 변경 없이 그대로 배치"하는 원칙).
+    var animSheetImg = (!ov && coatId && typeof dogAnimFrame === "number") ? getDogAnimSheet(breedId, stageIdx, coatId) : null;
 
-    if(spriteImg){
+    var animSheetHiImg = (animSheetImg && dogAnimHiCtx) ? getDogAnimSheetHi(breedId, stageIdx, coatId) : null;
+
+    if(animSheetHiImg){
+      // 84번: 원본 해상도 경로 — 개 본체는 겹쳐진 고해상도 캔버스에만 그리고, 이 저해상도 오프스크린에는
+      // 아무것도 그리지 않음(아래 배지 등은 기존대로 저해상도 캔버스에 남음).
+      drawDogAnimFrameHi(dogAnimHiCtx, animSheetHiImg, dogAnimFrame, cx, groundRow, H * 1.18, dogAnimFlip);
+    } else if(animSheetImg){
+      drawDogAnimFrame(ctx, animSheetImg, dogAnimFrame, cx, groundRow, H * 1.18, dogAnimFlip);
+    } else if(spriteImg){
       // 스프라이트 경로: 절차적 좌표(legH/bodyH/headH 등)는 배지 위치 계산 등에 계속 쓰이므로 그대로 두고,
       // 실루엣만 이미지 한 장으로 대체. 체고(H)에 귀·꼬리 여유분(헤드룸)을 곱해 세로 크기를 잡고, 스프라이트
       // 원본 가로세로 비율을 유지한 채 가로 크기를 산출 — groundRow(접지선)에 바닥을 맞추고 cx(중심)에 가로
@@ -584,11 +657,11 @@
 
     // 80-3번: 아웃라인을 두르기 전에, 실루엣 맨 위쪽(귀 부근)에 생길 수 있는 "갈라진 틈"을 먼저
     // 메움 — 위 closeTopSilhouetteNotches() 정의부 주석 참고.
-    closeTopSilhouetteNotches(ctx, dogOffW, dogOffH);
+    if(!animSheetImg) closeTopSilhouetteNotches(ctx, dogOffW, dogOffH);
     // 79번: 오프스크린에 다 그려진 실루엣에 굵은 아웃라인을 두른 뒤, 캐릭터가 실제로 보여야 할
     // realCtx로 한 번에 합성(캐릭터가 idle 포즈 등으로 이미 걸어둔 transform은 realCtx 쪽에 그대로
     // 남아있으므로 drawImage 한 번으로 기존과 동일하게 반영됨).
-    applyAutoOutline(ctx, dogOffW, dogOffH, DOG_OUTLINE_COLOR);
+    if(!animSheetImg) applyAutoOutline(ctx, dogOffW, dogOffH, DOG_OUTLINE_COLOR);
     realCtx.drawImage(ctx.canvas, 0, 0);
   }
 
@@ -877,6 +950,7 @@
     var ctx = el.pixelCanvas.getContext("2d");
     if(!ctx) return;
     ctx.clearRect(0, 0, PX_W, PX_H);
+    clearYardHiCanvas();
 
     var groundRow = PX_H - 4;
     var groundColor = cssVar("--moss", "#9CB88C");
@@ -970,7 +1044,81 @@
   // 보조 표시(점선 시선·Zzz·움찔 자국 등)로 표현 — 스케치 확인 때 보여드린 컨셉을 실제 색이 입혀진
   // 픽셀아트 위에 그대로 옮긴 것. 80-2번: 이 함수 내부의 모든 drawPixelDog 호출은 drawYardDog로 교체 —
   // 마당 화면에서만 강아지가 커지도록 스코프를 이 함수 하나로 한정함(호출부는 drawPixelScene 단 하나).
+  // 83번: 유저의 현재 개(견종·성장 단계·모색)에 맞는 애니메이션 시트가 있는지. 믹스견은 전용 시트가 없어 제외.
+  function yardAnimSheetReady(){
+    if(state.breed === "mix" || !state.coatId) return false;
+    var st = (typeof state.growthStage === "number") ? state.growthStage : 2;
+    return !!getDogAnimSheet(state.breed, st, state.coatId);
+  }
+  function drawYardAnimFrame(ctx, groundRow, frame, flip, offsetX){
+    dogAnimFrame = frame; dogAnimFlip = !!flip; dogAnimHiCtx = yardHiCtx();
+    try{ drawYardDog(ctx, groundRow, offsetX || 0); }
+    finally{ dogAnimFrame = null; dogAnimFlip = false; dogAnimHiCtx = null; }
+  }
+  function drawYardZzz(ctx, x, y){
+    ctx.fillStyle = "#726B58"; ctx.font = "7px sans-serif"; ctx.fillText("Z z", x, y);
+  }
+  // 83번: 시트가 있는 개의 마당 연출 — 기존 IDLE-001~011 포즈 순환(타이머·지속시간·확률)은 그대로 두고,
+  // 각 포즈를 "캔버스 변형으로 흉내"내던 부분만 시트의 실제 동작 프레임으로 바꿈. 효과선·점선 같은 보조
+  // 표시는 시트 원화와 겹치지 않도록 대부분 빼고, 잠(Zzz)과 IDLE-010의 날벌레 점만 남김.
+  function drawPixelIdleDogAnim(ctx, groundRow){
+    var pose = pixelIdlePose;
+    var cx = Math.round(PX_W/2) + 2;
+    if(!pose){
+      // 기본 숨쉬기(IDLE-000): 깜빡임 > 졸림(엎드려 턱 괴기) > 숨 내쉼 > 꼬리 흔들기 A/B 순으로 우선
+      var f;
+      if(pixelBlink) f = 2;
+      else if(moodOf() === "sleepy") f = 17;
+      else if(pixelBobUp) f = 1;
+      else f = pixelTailFrame ? 3 : 4;
+      drawYardAnimFrame(ctx, groundRow, f, false, 0);
+      return;
+    }
+    var elapsed = Date.now() - pixelIdlePoseStartTs;
+    var r = pixelIdlePoseDurMs > 0 ? Math.min(1, elapsed / pixelIdlePoseDurMs) : 1;
+    switch(pose){
+      case "IDLE-001": // 화면 밖 마실: 오른쪽으로 걸어나감(걷기 1~4 반복, 반전) → 사라짐 → 후다닥 달려 복귀
+        if(r < 0.35){ drawYardAnimFrame(ctx, groundRow, 6 + Math.floor(elapsed/140) % 4, true, Math.round(70 * (r/0.35))); }
+        else if(r < 0.65){ /* 화면 밖 */ }
+        else { drawYardAnimFrame(ctx, groundRow, 11, false, Math.round(70 * (1 - (r-0.65)/0.35))); }
+        break;
+      case "IDLE-002": drawYardAnimFrame(ctx, groundRow, 5, false, 0); break; // 앉아 올려다보기
+      case "IDLE-003": // 웅크려 자기 A/B(숨쉬기)
+        drawYardAnimFrame(ctx, groundRow, (Math.floor(elapsed/900) % 2) ? 13 : 12, false, 0);
+        drawYardZzz(ctx, cx + 14, groundRow - 40);
+        break;
+      case "IDLE-004": // 옆으로 누워 자기 A/B(꿈꾸며 움찔)
+        drawYardAnimFrame(ctx, groundRow, (Math.floor(elapsed/220) % 2) ? 15 : 14, false, 0);
+        drawYardZzz(ctx, cx + 14, groundRow - 34);
+        break;
+      case "IDLE-005": drawYardAnimFrame(ctx, groundRow, (Math.floor(elapsed/150) % 2) ? 19 : 18, false, 0); break; // 긁기
+      case "IDLE-006": drawYardAnimFrame(ctx, groundRow, (r < 0.12 || r > 0.88) ? 0 : 16, false, 0); break; // 기지개
+      case "IDLE-007": drawYardAnimFrame(ctx, groundRow, 20, false, (Math.floor(elapsed/60) % 2 === 0) ? 1 : -1); break; // 털기
+      case "IDLE-008": { // 꼬리잡기: 좌우 반전을 번갈아 제자리에서 뱅글뱅글 도는 느낌
+        var orbitX = Math.round(Math.sin(r * Math.PI * 2 * 1.6) * 6);
+        drawYardAnimFrame(ctx, groundRow, 22, (Math.floor(elapsed/200) % 2) === 1, orbitX);
+        break;
+      }
+      case "IDLE-009": drawYardAnimFrame(ctx, groundRow, r < 0.65 ? 21 : 0, false, 0); break; // 플레이바우 → 머쓱하게 풂
+      case "IDLE-010": { // 뭔가 쫓기: 날벌레 쪽(오른쪽 위)을 올려다봄
+        var flyX = cx + 20 + Math.round(Math.sin(elapsed/260) * 16);
+        drawYardAnimFrame(ctx, groundRow, 23, true, (Math.floor(elapsed/260) % 2 === 0) ? 1 : -1);
+        ctx.fillStyle = "#C4482B";
+        ctx.fillRect(flyX, groundRow - 58 + Math.round(Math.cos(elapsed/310) * 6), 2, 2);
+        break;
+      }
+      case "IDLE-011": { // 바닥 냄새 산책: 코를 박고 좌우로 어슬렁 — 움직이는 방향을 보게 반전
+        var drift = Math.round(Math.sin(elapsed/900) * 10);
+        drawYardAnimFrame(ctx, groundRow, 10, Math.cos(elapsed/900) > 0, drift);
+        break;
+      }
+      default: drawYardAnimFrame(ctx, groundRow, 0, false, 0);
+    }
+  }
+
   function drawPixelIdleDog(ctx, groundRow){
+    // 83번: 애니메이션 시트가 있는 개(현재 웰시코기 성견)는 시트 프레임 경로로, 나머지는 아래 기존 그대로.
+    if(yardAnimSheetReady()){ drawPixelIdleDogAnim(ctx, groundRow); return; }
     var pose = pixelIdlePose;
     if(!pose){ drawYardDog(ctx, groundRow); return; }
     var elapsed = Date.now() - pixelIdlePoseStartTs;

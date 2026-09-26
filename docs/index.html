@@ -36,6 +36,9 @@
 
     <div class="yard" id="yard">
       <canvas class="pixel-canvas" id="pixelCanvas" width="150" height="100" aria-hidden="true"></canvas>
+      <!-- 84번: 원본 해상도 애니메이션 시트용 개 전용 레이어(150×100의 4.4배). 배경은 아래 #pixelCanvas 그대로,
+           개 본체만 이 캔버스에 원본 픽셀 1:1로 그림. 클릭은 아래 캔버스로 통과(pointer-events:none). -->
+      <canvas class="pixel-canvas pixel-canvas-hi" id="pixelDogHiCanvas" width="660" height="440" aria-hidden="true"></canvas>
       <div class="cloud cloud-a"></div>
       <div class="cloud cloud-b"></div>
       <!-- 48번(기획문서 12장, 재작업): 30일 종료 엔딩씬을 별도 팝업이 아니라 이 마당 안에 바로 그림 —

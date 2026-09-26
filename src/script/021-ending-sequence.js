@@ -136,6 +136,7 @@
     if(!el.pixelCanvas || !el.pixelCanvas.getContext) return;
     applyPixelMode();
     var ctx = el.pixelCanvas.getContext("2d");
+    clearYardHiCanvas(); // 84번: 마당 위 고해상도 개 캔버스가 엔딩씬 위에 남지 않게
     var farewell = state.ending.outcome === "farewell";
 
     el.endingCaption.hidden = true;
@@ -186,6 +187,7 @@
     if(!state.ending || !el.pixelCanvas || !el.pixelCanvas.getContext) return;
     applyPixelMode();
     var ctx = el.pixelCanvas.getContext("2d");
+    clearYardHiCanvas(); // 84번: 마당 위 고해상도 개 캔버스가 엔딩씬 위에 남지 않게
     stopEndingAura();
     if(state.ending.outcome === "success"){
       drawEndingScene(ctx, { showDog:true, dogOffsetX:ENDING_DOG_OFFSET_X });
