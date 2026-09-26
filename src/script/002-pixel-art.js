@@ -947,6 +947,9 @@
 
   function drawPixelScene(){
     if(!el.pixelCanvas || !el.pixelCanvas.getContext) return;
+    // 85번: 페이퍼컷 거실 마당(031)이 준비돼 있으면 그쪽이 자체 루프로 그림 — 여기선 깨우기만 하고 끝.
+    // (엔딩씬 중이거나 031이 아직 실행 전인 부트스트랩 첫 호출에선 아래 기존 150×100 마당을 그대로 그림)
+    if(papercutYardActive()){ papercutYardKick(); return; }
     var ctx = el.pixelCanvas.getContext("2d");
     if(!ctx) return;
     ctx.clearRect(0, 0, PX_W, PX_H);
