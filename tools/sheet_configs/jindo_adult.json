@@ -1,0 +1,124 @@
+{
+ "src": "sheet.png",
+ "breed": "jindo",
+ "stage": "adult",
+ "white_bg": false,
+ "flip": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false
+ ],
+ "star_masks": [],
+ "classes": [
+  [
+   "out",
+   [
+    62,
+    22,
+    7
+   ],
+   30
+  ],
+  [
+   "a",
+   [
+    245,
+    239,
+    228
+   ],
+   12
+  ],
+  [
+   "b",
+   [
+    227,
+    218,
+    200
+   ],
+   12
+  ],
+  [
+   "bDark",
+   [
+    201,
+    186,
+    162
+   ],
+   16
+  ],
+  [
+   "inner",
+   [
+    245,
+    202,
+    171
+   ],
+   18
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "baekgu": {
+   "a": "#F3F1E9",
+   "b": "#E7E3D4",
+   "bDark": "#C7C2AE"
+  },
+  "hwanggu": {
+   "a": "#D9A85E",
+   "b": "#C89552",
+   "bDark": "#9E7238"
+  },
+  "jaegu": {
+   "a": "#B9AF9E",
+   "b": "#8D8375",
+   "bDark": "#6B6255"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "inner": [
+   245,
+   202,
+   171
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ },
+ "light_nearest_lum": 150
+}

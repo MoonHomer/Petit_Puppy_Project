@@ -3,7 +3,7 @@
 칸 나누기(6×4 균등) → 필요하면 좌우 반전(게임 기준 = 왼쪽 보기) → 목표 크기로 면적 투표 축소 →
 칸 안 가로 중앙·바닥 정렬 → 모색별 재채색 → 인덱스 PNG.
 사용: python3 import_sheet.py [설정.json]  (설정이 없으면 아래 CONFIG = 86번 보더콜리)
-설정 항목(87번에 추가): flip = 칸별 좌우 반전 목록(24개, 생성툴이 칸마다 방향을 섞어 그릴 때),
+설정 항목(87·88번에 추가): light_nearest_lum = 밝은 중간톤을 털색으로 바로 확정할 밝기 기준(88번), flip = 칸별 좌우 반전 목록(24개, 생성툴이 칸마다 방향을 섞어 그릴 때),
 white_bg = 흰 칸 구분선도 배경으로, star_masks = [[칸번호(1~24), cx, cy, R, p], ...] 워터마크 별 모양 영역
 (칸 좌상단 기준 좌표, |dx/R|^p + |dy/R|^p ≤ 1)을 "모르는 픽셀"로 두고 주변 확정색으로 채움.
 """
@@ -50,6 +50,18 @@ def main(cfg):
     bg_sure = (mag > 110) & (r > 150) & (b > 150)
     if cfg.get("white_bg"): bg_sure |= (r > 235) & (g > 235) & (b > 235)
     certain = bg_sure | (dmin < thr[near])
+    # 88번: 중간 톤 털(먼 다리 그늘 등)이 확정색 사이에 끼어 있으면, "가장 가까운 확정 픽셀" 방식이 좁은 다리를
+    # 통째로 외곽선색으로 칠해버림 → 밝은(평균 밝기 > light_nearest_lum) 비마젠타 픽셀은 외곽선을 뺀 털색 중
+    # 가장 가까운 색으로 바로 확정.
+    ln = cfg.get("light_nearest_lum")
+    if ln:
+        lum = im.mean(-1)
+        fur_idx = [i for i, n in enumerate(names) if n not in ("out", "tongue")]
+        light = (~certain) & (lum > ln) & (mag < 40)
+        dd = d[..., fur_idx]
+        best = np.array(fur_idx)[dd.argmin(-1)]
+        lab[light] = best[light] + 1
+        certain |= light
     yy, xx = np.mgrid[0:H, 0:W]
     for (cell, cx, cy, R, pw) in cfg.get("star_masks", []):
         row, col = divmod(cell - 1, 6)
@@ -59,18 +71,18 @@ def main(cfg):
     lab[bg_sure] = 0
     _, (iy, ix) = distance_transform_edt(~certain, return_indices=True)
     lab = lab[iy, ix]                                 # 번짐 픽셀은 가장 가까운 확정 픽셀(배경 포함)을 따름
-    # 잡티 흡수(작은 색 조각 → 주변 다수 색)
+    # 잡티 흡수(작은 색 조각 → 가장 가까운 큰 조각의 색). 88번: 조각마다 도는 대신 한 번에 처리(속도)
+    small = np.zeros(lab.shape, bool)
     for k in range(1, len(names)+1):
         if names[k-1] == "tongue": continue
         L, n = ndimage.label(lab == k)
         if n == 0: continue
-        sizes = ndimage.sum(np.ones_like(L), L, range(1, n+1))
-        for j, sz in enumerate(sizes, 1):
-            if sz >= 30: continue
-            m = L == j
-            ring = ndimage.binary_dilation(m, np.ones((3,3))) & ~m
-            v = lab[ring]; v = v[v != k]
-            if v.size: lab[m] = np.bincount(v).argmax()
+        sizes = np.bincount(L.ravel())
+        tiny = sizes < 30; tiny[0] = False
+        small |= tiny[L]
+    if small.any():
+        _, (iy, ix) = distance_transform_edt(small, return_indices=True)
+        lab = lab[iy, ix]
     # 칸 나누기 + 칸마다 본체만 남기기(워터마크·날벌레 등 떨어진 조각 제거)
     frames, removed = [], []
     for row in range(4):
