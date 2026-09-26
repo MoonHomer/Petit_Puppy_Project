@@ -1,0 +1,16 @@
+{
+  "src": "sheet.png", "breed": "labrador", "stage": "adult", "white_bg": false,
+  "flip": [false,false,false,false,false,false, false,false,false,false,false,false,
+           false,false,false,false,false,false, false,false,false,false,false,false],
+  "order": [1,2,4,5,6,21, 7,8,9,10,11,12, 13,14,15,16,18,17, 19,19,20,22,23,24],
+  "star_masks": [[24, 180, 182, 56, 0.75]],
+  "light_nearest_lum": 150,
+  "classes": [["out",[56,16,4],30], ["a",[241,207,141],18], ["aDark",[200,156,95],22],
+              ["tongue",[225,110,100],35]],
+  "coats": {
+    "yellow":    {"a":"#EDD9A3","aDark":"#CBB37D"},
+    "black":     {"a":"#3A3733","aDark":"#242220"},
+    "chocolate": {"a":"#8A5A3C","aDark":"#6B4128"}
+  },
+  "fixed": {"out":[55,33,9], "tongue":[224,110,100]}
+}

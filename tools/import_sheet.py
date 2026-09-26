@@ -3,7 +3,7 @@
 칸 나누기(6×4 균등) → 필요하면 좌우 반전(게임 기준 = 왼쪽 보기) → 목표 크기로 면적 투표 축소 →
 칸 안 가로 중앙·바닥 정렬 → 모색별 재채색 → 인덱스 PNG.
 사용: python3 import_sheet.py [설정.json]  (설정이 없으면 아래 CONFIG = 86번 보더콜리)
-설정 항목(87·88번에 추가): light_nearest_lum = 밝은 중간톤을 털색으로 바로 확정할 밝기 기준(88번), flip = 칸별 좌우 반전 목록(24개, 생성툴이 칸마다 방향을 섞어 그릴 때),
+설정 항목(87~89번에 추가): order = 컷 순서 재배치(89번), light_nearest_lum = 밝은 중간톤을 털색으로 바로 확정할 밝기 기준(88번), flip = 칸별 좌우 반전 목록(24개, 생성툴이 칸마다 방향을 섞어 그릴 때),
 white_bg = 흰 칸 구분선도 배경으로, star_masks = [[칸번호(1~24), cx, cy, R, p], ...] 워터마크 별 모양 영역
 (칸 좌상단 기준 좌표, |dx/R|^p + |dy/R|^p ≤ 1)을 "모르는 픽셀"로 두고 주변 확정색으로 채움.
 """
@@ -113,6 +113,9 @@ def main(cfg):
             flip = cfg["flip"][len(frames)] if "flip" in cfg else cfg.get("face_right", False)
             if flip: c = c[:, ::-1]
             frames.append(c); removed.append(rm)
+    # 89번: 생성툴이 컷 순서를 바꿔 그렸을 때 게임 순서로 다시 배치(order = 게임 1~24번 칸에 쓸 원본 칸 번호)
+    if cfg.get("order"):
+        frames = [frames[i-1] for i in cfg["order"]]
     # 목표 크기로 면적 투표 축소(0번 프레임 높이 = target)
     target = cfg["target_ref_h"] or game_ref_h(cfg["breed"])
     sc = target / frames[0].shape[0]
