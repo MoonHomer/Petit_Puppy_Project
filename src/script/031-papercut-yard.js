@@ -365,6 +365,10 @@
       return { targetH: yardTargetH(breedId, gv),                                  // 150×100 정지 그림 속 실제 높이
                sceneH: (typeof DOG_ANIM_HI_REF_H === "number" ? DOG_ANIM_HI_REF_H : 193) * breedFactor * gv };
     }
+    function animMeta(){
+      var st = (typeof state.growthStage === "number") ? state.growthStage : 2;
+      return getDogAnimSheetHiMeta(state.breed, st);
+    }
     function animSheet(){
       if(state.breed === "mix" || !state.coatId) return null;
       var st = (typeof state.growthStage === "number") ? state.growthStage : 2;
@@ -374,7 +378,7 @@
     function dogPixelScale(layerS){
       var b = dogBase();
       if(animSheet()){
-        var s = b.sceneH / DOG_ANIM_HI_REF_H;
+        var s = b.sceneH / animMeta().refH;
         var si = Math.round(s);
         if(si >= 1 && Math.abs(s - si) < 0.15) s = si;                           // 레이어2에서 원본 1:1로 딱 맞춤
         return s * layerS / NATIVE;
@@ -406,7 +410,7 @@
         var sp = spots[Math.floor(Math.random() * spots.length)];
         var dir = dog.x <= sp.spot.x ? 1 : -1;
         var kk = dogPixelScale(layerScale(dog.layer));
-        var noseOff = sp.spot.nose ? (animSheet() ? 0.36 * DOG_ANIM_HI_CELL_W * kk : 16 * kk) : 0;
+        var noseOff = sp.spot.nose ? (animSheet() ? 0.36 * animMeta().cw * kk : 16 * kk) : 0;
         dog.mode = "walk"; dog.walkTo = sp.spot.x - dir * noseOff; dog.afterWalk = sp.spot.kind; dog.face = dir;
         return;
       }
@@ -503,10 +507,11 @@
       g.imageSmoothingEnabled = k < 0.999;
       g.translate(P.x, 0);
       if(sheet){
-        var f = frameFor(now), sx = (f % DOG_ANIM_COLS) * DOG_ANIM_HI_CELL_W, sy = Math.floor(f / DOG_ANIM_COLS) * DOG_ANIM_HI_CELL_H;
-        var dw = DOG_ANIM_HI_CELL_W * k, dh = DOG_ANIM_HI_CELL_H * k;
+        var mt = animMeta();
+        var f = frameFor(now), sx = (f % DOG_ANIM_COLS) * mt.cw, sy = Math.floor(f / DOG_ANIM_COLS) * mt.ch;
+        var dw = mt.cw * k, dh = mt.ch * k;
         if(dog.face > 0) g.scale(-1, 1);                          // 시트는 왼쪽을 봄
-        g.drawImage(sheet, sx, sy, DOG_ANIM_HI_CELL_W, DOG_ANIM_HI_CELL_H, -dw/2, P.y - dh, dw, dh);
+        g.drawImage(sheet, sx, sy, mt.cw, mt.ch, -dw/2, P.y - dh, dw, dh);
       } else {
         var closed = dog.mode === "idle" && dog.kind === "lie";
         var bob = dog.mode === "walk" ? Math.round(Math.abs(Math.sin(now/140)) * 1.5) : 0;   // 걷는 느낌만 살짝
