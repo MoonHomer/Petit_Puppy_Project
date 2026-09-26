@@ -1,0 +1,16 @@
+{
+  "src": "sheet.png", "breed": "shiba", "stage": "adult", "white_bg": true,
+  "flip": [false,true,false,true,true,true,
+           true,true,true,true,true,true,
+           true,true,false,false,true,true,
+           true,true,true,false,true,true],
+  "star_masks": [[24, 180, 182, 56, 0.75]],
+  "classes": [["out",[21,1,3],28], ["a",[207,127,46],30], ["b",[245,216,193],18],
+              ["inner",[241,199,152],16], ["tongue",[225,110,110],35]],
+  "coats": {
+    "aka":    {"a":"#D6812F","b":"#F0DCC0"},
+    "sesame": {"a":"#4A4038","b":"#B98A52"},
+    "cream":  {"a":"#F3E6C8","b":"#EFE0BC"}
+  },
+  "fixed": {"out":[55,33,9], "inner":[245,209,164], "tongue":[224,110,100]}
+}

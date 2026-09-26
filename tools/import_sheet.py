@@ -2,7 +2,10 @@
 마젠타 배경 제거 → 색 분류(확정색 + 번짐 픽셀은 가장 가까운 확정색) → 떨어진 잡티·워터마크 제거 →
 칸 나누기(6×4 균등) → 필요하면 좌우 반전(게임 기준 = 왼쪽 보기) → 목표 크기로 면적 투표 축소 →
 칸 안 가로 중앙·바닥 정렬 → 모색별 재채색 → 인덱스 PNG.
-사용: python3 import_sheet.py  (설정은 아래 CONFIG)
+사용: python3 import_sheet.py [설정.json]  (설정이 없으면 아래 CONFIG = 86번 보더콜리)
+설정 항목(87번에 추가): flip = 칸별 좌우 반전 목록(24개, 생성툴이 칸마다 방향을 섞어 그릴 때),
+white_bg = 흰 칸 구분선도 배경으로, star_masks = [[칸번호(1~24), cx, cy, R, p], ...] 워터마크 별 모양 영역
+(칸 좌상단 기준 좌표, |dx/R|^p + |dy/R|^p ≤ 1)을 "모르는 픽셀"로 두고 주변 확정색으로 채움.
 """
 import numpy as np, json, base64, io, sys
 from PIL import Image
@@ -45,7 +48,14 @@ def main(cfg):
     near = d.argmin(-1); dmin = d.min(-1)
     lab = near + 1                                   # 0 = 배경
     bg_sure = (mag > 110) & (r > 150) & (b > 150)
+    if cfg.get("white_bg"): bg_sure |= (r > 235) & (g > 235) & (b > 235)
     certain = bg_sure | (dmin < thr[near])
+    yy, xx = np.mgrid[0:H, 0:W]
+    for (cell, cx, cy, R, pw) in cfg.get("star_masks", []):
+        row, col = divmod(cell - 1, 6)
+        ox, oy = round(col*W/6), round(row*H/4)
+        m = (np.abs(xx - ox - cx)/R)**pw + (np.abs(yy - oy - cy)/R)**pw <= 1
+        certain &= ~m
     lab[bg_sure] = 0
     _, (iy, ix) = distance_transform_edt(~certain, return_indices=True)
     lab = lab[iy, ix]                                 # 번짐 픽셀은 가장 가까운 확정 픽셀(배경 포함)을 따름
@@ -88,7 +98,8 @@ def main(cfg):
                         if v.size: c[m] = np.bincount(v).argmax()
             ys, xs = np.nonzero(c)
             c = c[ys.min():ys.max()+1, xs.min():xs.max()+1]
-            if cfg["face_right"]: c = c[:, ::-1]
+            flip = cfg["flip"][len(frames)] if "flip" in cfg else cfg.get("face_right", False)
+            if flip: c = c[:, ::-1]
             frames.append(c); removed.append(rm)
     # 목표 크기로 면적 투표 축소(0번 프레임 높이 = target)
     target = cfg["target_ref_h"] or game_ref_h(cfg["breed"])
@@ -125,4 +136,11 @@ def main(cfg):
     json.dump({"breed":cfg["breed"],"stage":cfg["stage"],"cw":CW,"ch":CH,"refH":REF,"uris":res}, open("atlas.json","w"))
 
 if __name__ == "__main__":
-    main(CONFIG)
+    if len(sys.argv) > 1:
+        cfg = json.load(open(sys.argv[1]))
+        cfg["classes"] = [(n, tuple(c), t) for n, c, t in cfg["classes"]]
+        cfg["fixed"] = {k: tuple(v) for k, v in cfg.get("fixed", {}).items()}
+        cfg.setdefault("target_ref_h", None)
+        main(cfg)
+    else:
+        main(CONFIG)
