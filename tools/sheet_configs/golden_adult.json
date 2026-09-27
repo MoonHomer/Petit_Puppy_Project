@@ -1,0 +1,107 @@
+{
+ "src": "sheet.png",
+ "breed": "golden",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  false,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  true,
+  false,
+  true,
+  false,
+  false,
+  true,
+  false,
+  true,
+  true
+ ],
+ "star_masks": [
+  [
+   24,
+   180,
+   182,
+   56,
+   0.75
+  ]
+ ],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    234,
+    187,
+    106
+   ],
+   20
+  ],
+  [
+   "aDark",
+   [
+    199,
+    138,
+    68
+   ],
+   22
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "golden": {
+   "a": "#E8C27A",
+   "aDark": "#C99A4E"
+  },
+  "cream": {
+   "a": "#F3E3C0",
+   "aDark": "#D9C69B"
+  },
+  "darkgold": {
+   "a": "#C99A52",
+   "aDark": "#A87A38"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}

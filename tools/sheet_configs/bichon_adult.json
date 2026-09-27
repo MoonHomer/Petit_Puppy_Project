@@ -1,0 +1,99 @@
+{
+ "src": "sheet.png",
+ "breed": "bichon",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false
+ ],
+ "star_masks": [],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    250,
+    248,
+    244
+   ],
+   14
+  ],
+  [
+   "aDark",
+   [
+    234,
+    220,
+    202
+   ],
+   14
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "white": {
+   "a": "#FBFAF4",
+   "aDark": "#DAD5C4"
+  },
+  "creamtrim": {
+   "a": "#FBFAF4",
+   "aDark": "#E2C79A"
+  },
+  "ivory": {
+   "a": "#F3E6C8",
+   "aDark": "#D8C79E"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}

@@ -1,0 +1,113 @@
+{
+ "src": "sheet.png",
+ "breed": "westie",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false
+ ],
+ "star_masks": [],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    248,
+    244,
+    234
+   ],
+   14
+  ],
+  [
+   "aDark",
+   [
+    220,
+    202,
+    190
+   ],
+   16
+  ],
+  [
+   "inner",
+   [
+    245,
+    205,
+    180
+   ],
+   18
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "snow": {
+   "a": "#F6F4EC",
+   "aDark": "#D8D2C2"
+  },
+  "cream": {
+   "a": "#F2EAD6",
+   "aDark": "#D6C8A8"
+  },
+  "wheaten": {
+   "a": "#EDE3CB",
+   "aDark": "#CDBE9C"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "inner": [
+   245,
+   202,
+   171
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}

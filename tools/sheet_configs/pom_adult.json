@@ -1,0 +1,119 @@
+{
+ "src": "sheet.png",
+ "breed": "pom",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  false
+ ],
+ "star_masks": [
+  [
+   24,
+   180,
+   182,
+   56,
+   0.75
+  ]
+ ],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    234,
+    180,
+    104
+   ],
+   22
+  ],
+  [
+   "b",
+   [
+    247,
+    218,
+    162
+   ],
+   18
+  ],
+  [
+   "aDark",
+   [
+    205,
+    145,
+    75
+   ],
+   20
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "orange": {
+   "a": "#F0C98A",
+   "aDark": "#D2A75F",
+   "b": "#F7DFAE"
+  },
+  "cream": {
+   "a": "#F5E8CC",
+   "aDark": "#DCC89E",
+   "b": "#FBF3E1"
+  },
+  "black": {
+   "a": "#3C3A38",
+   "aDark": "#242222",
+   "b": "#585351"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}

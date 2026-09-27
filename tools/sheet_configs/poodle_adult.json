@@ -1,0 +1,107 @@
+{
+ "src": "sheet.png",
+ "breed": "poodle",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false
+ ],
+ "star_masks": [
+  [
+   24,
+   180,
+   182,
+   56,
+   0.75
+  ]
+ ],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    224,
+    158,
+    84
+   ],
+   22
+  ],
+  [
+   "aDark",
+   [
+    190,
+    124,
+    56
+   ],
+   20
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "apricot": {
+   "a": "#E7A55C",
+   "aDark": "#C1813C"
+  },
+  "black": {
+   "a": "#3A3733",
+   "aDark": "#4A4642"
+  },
+  "cream": {
+   "a": "#F3E6C8",
+   "aDark": "#D8C79E"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}

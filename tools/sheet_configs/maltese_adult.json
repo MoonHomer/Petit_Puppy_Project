@@ -1,0 +1,107 @@
+{
+ "src": "sheet.png",
+ "breed": "maltese",
+ "stage": "adult",
+ "white_bg": false,
+ "dark_mag_bg": true,
+ "light_nearest_lum": 150,
+ "flip": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  true
+ ],
+ "star_masks": [
+  [
+   24,
+   180,
+   182,
+   56,
+   0.75
+  ]
+ ],
+ "classes": [
+  [
+   "out",
+   [
+    48,
+    18,
+    6
+   ],
+   55
+  ],
+  [
+   "a",
+   [
+    248,
+    246,
+    238
+   ],
+   14
+  ],
+  [
+   "aDark",
+   [
+    234,
+    222,
+    204
+   ],
+   14
+  ],
+  [
+   "tongue",
+   [
+    225,
+    110,
+    100
+   ],
+   35
+  ]
+ ],
+ "coats": {
+  "white": {
+   "a": "#FAF8F2",
+   "aDark": "#DAD5C4"
+  },
+  "ivory": {
+   "a": "#F5EFDD",
+   "aDark": "#D9CFA9"
+  },
+  "creamtan": {
+   "a": "#EAD9B0",
+   "aDark": "#C9AF7C"
+  }
+ },
+ "fixed": {
+  "out": [
+   55,
+   33,
+   9
+  ],
+  "tongue": [
+   224,
+   110,
+   100
+  ]
+ }
+}
