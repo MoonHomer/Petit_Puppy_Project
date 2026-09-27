@@ -26,7 +26,12 @@
     // 푸들: 스탠다드(100%) 기준 체고 — 소형/미디엄은 breedSizeScale()로 별도 곱연산. 처진 귀, 동그란 폼폼 꼬리(plume 재사용).
     poodle:{ heightCm:45, lengthRatio:1.05, legRatio:0.34, earStyle:"floppyLow", tailStyle:"plume", snoutRatio:0.3 },
     // 비숑프리제: "큰 대두"(headScaleMult×2)·짧은 다리(legRatio 최소치권)·곱슬곱슬 뭉게구름 실루엣(curlyFur).
-    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true }
+    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true },
+    // 91번(24-2장): 웨스티 — 체고 약 27cm(FCI 28cm·AKC 25~28cm), 짧은 다리, 둥근 국화꽃 머리(headScaleMult
+    // 1.3 — 비숑 2배보다 훨씬 약하게) 위로 작은 선 귀(erect, earScale로 작게 → 81번 귀 사이 틈 메우기
+    // 적용 대상), 큼직한 코(snoutRatio), 곧게 위로 선 당근 꼬리(carrot, 이번에 신설). headPuff는 비숑의
+    // curlyFur 중 "머리 뭉치"만 따로 켜는 신설 옵션(몸통은 거친 직모라 매끈하게 둠).
+    westie:{ heightCm:27, lengthRatio:1.15, legRatio:0.2, bodyHRatio:0.44, earStyle:"erect", earScale:0.85, tailStyle:"carrot", snoutRatio:0.34, headScaleMult:1.3, headPuff:true }
   };
   // 32번: 산책 팝업의 반려견이 너무 작다는 피드백 반영 — 픽셀모드 산책 캔버스의 표시 크기를
   // "대형견 기준 체고가 팝업(.walk-scene, 120px) 높이의 2/3를 차지"하도록 역산해서 정함.
@@ -492,6 +497,17 @@
       var stubW = Math.max(1, Math.round(tailW*0.7));
       var stubH = Math.max(1, Math.round(tailH*0.65));
       ctx.fillRect(bodyLeft - stubW + 1, bodyBottom - stubH + oy, stubW, stubH);
+    } else if(tailStyle === "carrot"){
+      // 91번: 웨스티 "당근 꼬리" — 엉덩이 위에서 곧게 위로 서고, 뿌리는 굵고 끝으로 갈수록 가늘어짐
+      // (말리지 않고 등 위로 넘기지도 않음). 슬플 땐 살짝 낮게 눕힘.
+      var carrotBaseW = Math.max(2, Math.round(tailW*0.8));
+      var carrotH = Math.max(3, Math.round(H*0.34));
+      var carrotX = bodyLeft - Math.round(carrotBaseW*0.3);
+      var carrotLow = (mood === "sad") ? Math.round(carrotH*0.4) : 0;
+      var carrotTop = bodyTop - carrotH + Math.round(bodyH*0.3) + carrotLow;
+      ctx.fillRect(carrotX, carrotTop + Math.round(carrotH*0.45) + oy, carrotBaseW, carrotH - Math.round(carrotH*0.45));
+      var carrotTipW = Math.max(1, carrotBaseW - Math.max(1, Math.round(carrotBaseW*0.4)));
+      ctx.fillRect(carrotX, carrotTop + oy, carrotTipW, Math.round(carrotH*0.45) + 1);
     } else if(tailStyle === "otter"){
       // 래브라도: 두툼하고 곧게 뻗은 "수달 꼬리" — 75번: 친화력이 높으면 기본값으로 살짝 들려있음
       ctx.fillRect(bodyLeft - tailW, bodyTop + Math.round(bodyH*0.35) - sv.tailLiftPx + oy, tailW + 1, tailH);
@@ -551,6 +567,14 @@
     ctx.fillRect(headLeft, headTop + oy, headW, headH);
 
     // 78번: 머리 쪽 곱슬 뭉치도 함께(귀·눈·주둥이는 이후에 그려져 또렷하게 그 위에 얹힘)
+    // 91번: headPuff(웨스티) — 몸통 뭉치 없이 양 볼 아래에만 뭉치 2개를 얹어 "국화꽃처럼 둥근 얼굴"
+    // (정수리·옆머리에는 얹지 않음 — 정수리는 작은 선 귀를 덮고, 옆머리는 귀 틈 메우기 로직이 얼룩으로 칠해버려서)
+    if(sc.headPuff){
+      var wPuffR = Math.max(2, Math.round(headH*0.24));
+      [[headLeft+wPuffR*0.2, headBottom-wPuffR*0.7],[headRight-wPuffR*0.2, headBottom-wPuffR*0.7]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, wPuffR, furA);
+      });
+    }
     if(sc.curlyFur){
       var hPuffR = Math.max(2, Math.round(headH*0.26));
       [[headLeft+headW*0.2, headTop],[headLeft+headW*0.5, headTop-hPuffR*0.3],[headLeft+headW*0.8, headTop]].forEach(function(p){

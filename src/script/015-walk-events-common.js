@@ -34,6 +34,7 @@
       judge:{ability:"agility"},
       text:"멀리서도 맡아지는 신비한 향이야.",
       stat:[{p:"core.comprehension", n:2}] },
+    // 91번: WALK-007·WALK-053은 웨스티 '삽질 장인' 대상(WESTIE_DIG_EVENT_IDS, 006번)
     { id:"WALK-007", cat:"신체활동", grade:"일반", weight:3.46, gauge:14, anim:"dig", particle:"dust",
       judge:{ability:"power"},
       text:"여기 뭔가 있을 것 같아서 파봤어!",

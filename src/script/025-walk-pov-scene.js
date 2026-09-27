@@ -91,7 +91,9 @@
         // drawWalkFrontDog()에서 반영됨. fluffy는 기존 71번 관례 그대로(포메·시츄와 같은 방식) 재사용.
         maltese:  { earStyle:"floppyLong", scale:0.42, name:"몰티즈" },
         poodle:   { earStyle:"floppyLow",  scale:0.85, name:"푸들" },
-        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" }
+        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" },
+        // 91번(24-2장): 웨스티 — 작은 선 귀(시바와 같은 erectSmall), 둥근 머리 약 1.3배, 짧은 다리 약 0.8배.
+        westie:   { earStyle:"erectSmall", scale:0.52, headScaleMult:1.3, legScaleMult:0.8, name:"웨스티" }
       };
     }
     return _walkBreedFrontCache;

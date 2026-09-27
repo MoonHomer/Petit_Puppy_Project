@@ -67,7 +67,9 @@
     // POODLE_POWER_BY_SIZE로 computeEffectiveBaseStats()에서 덮어씀. 근력을 제외한 나머지 7개
     // 스탯·고유능력은 여전히 3사이즈 전부 완전히 동일.
     poodle:   { power:55, agility:70, comprehension:95, execution:90, loyalty:65, affinity:90, health:60, aggression:10 },
-    bichon:   { power:45, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
+    bichon:   { power:45, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 },
+    // 91번(24-2장 표 그대로): 웨스티 — 가장 가까운 기존 견종은 시바견(친화력↑·건강함↓·이해력↓로 구분).
+    westie:   { power:40, agility:70, comprehension:60, execution:40, loyalty:65, affinity:50, health:50, aggression:60 }
   };
   // 78번: 푸들 전용 "크기 클래스" — 그래픽 크기만 이 배율로 차등 적용됨(9장 성장단계 스케일과
   // 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).

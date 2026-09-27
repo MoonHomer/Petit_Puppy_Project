@@ -77,6 +77,14 @@
       // 왕성한 식욕과 활발함("비숑타임"), 곱슬 털은 손질이 자주 필요한 편
       mult:{ cleanDrain:1.15, hungerDrain:1.15, happinessGainActive:1.15 }
     },
+    // 91번(24-2장): 웨스티(웨스트 하이랜드 화이트 테리어) — 순종 13번째. mult 배율은 기획 문서에 수치가
+    // 없어 78번과 같은 방식으로 개발팀이 리서치 근거에 맞춰 채움(흰 털이라 청결 저하가 빠르고, 활동적인
+    // 사냥견 출신이라 뛰어놀 때 특히 즐거워함 — 실플레이 후 조정 가능).
+    westie: {
+      name:"웨스티", desc:"몸은 작지만 속은 대형견인, 땅 파기를 좋아하는 하얀 사냥꾼",
+      fur:{a:"#F6F4EC", aDark:"#D8D2C2", b:"#F6F4EC", bDark:"#D8D2C2"},
+      mult:{ cleanDrain:1.2, happinessGainActive:1.1 }
+    },
     // 29번: 믹스견(시고르자브) — 등록된 견종 중 두 마리를 무작위로 매칭해 만들어지는, 세상에 하나뿐인 조합.
     // 특정 견종 배수를 주지 않고 중립으로 두고, 크기·모색·눈동자색·픽셀 실루엣은 매칭된 두 견종에서 랜덤으로 물려받음(chooseCrate 참고).
     mix: {
@@ -85,9 +93,10 @@
       mult:{}
     }
   };
-  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","mix"];
+  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","westie","mix"];
   // 실제 "정식 견종" 목록(믹스견의 부모 매칭 대상) — mix 자신은 제외
-  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon"];
+  // 91번: 웨스티가 여기 들어가면서 시고르자브 가상 부모견 추첨 풀·[기다려 대회] 상대견 풀에도 자동 포함됨.
+  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","westie"];
 
   // 4-1. 랜덤 성격 & 신체 패시브 (석세스모드 참고)
   var PERSONALITIES = [
@@ -110,7 +119,7 @@
   // 견종별 체구 구분(19번 실측 체고 기준) — 이동장을 열기 전, 크기만 먼저 살짝 알려주는 용도
   // 78번: 푸들은 소형/미디엄/스탠다드 3사이즈로 나오지만(개체별 state.breedSizeClass), 이 SIZE_LABEL은
   // 부상 위험 확률(jointCare)처럼 "견종 하나에 크기 하나"를 전제하는 기존 로직용 대표값이라 중형으로 고정.
-  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", mix:"중형" };
+  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", westie:"소형", mix:"중형" };
 
   // 견종별로 실제 나올 법한 눈동자 색 팔레트 — 견종은 이미 정해져 있고(이동장 뽑기), 그 안에서 유저가 선택
   var EYE_COLORS = {
@@ -165,6 +174,11 @@
     bichon: [
       { id:"darkbrown", name:"짙은 흑갈색", hex:"#2E1D12" },
       { id:"espresso", name:"에스프레소", hex:"#1F150F" }
+    ],
+    // 91번(24-2장): 웨스티 — FCI 표준 "짙은 색 눈". 기존 흰 견종(몰티즈·비숑)과 같은 짙은 계열 2종.
+    westie: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#241712" },
+      { id:"espresso", name:"에스프레소", hex:"#1A120D" }
     ]
   };
   // 견종별 실제 표준 모색 팔레트 — 첫 항목은 기존에 쓰던 기본 색상과 동일(하위 호환)
@@ -232,6 +246,13 @@
       { id:"white", name:"화이트", fur:{ a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC" } },
       { id:"creamtrim", name:"화이트(살구빛 포인트)", fur:{ a:"#FBFAF4", aDark:"#E2C79A", b:"#F3EEDF", bDark:"#D6BE8E" } },
       { id:"ivory", name:"아이보리", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
+    ],
+    // 91번(24-2장): 웨스티 — FCI 기준 흰색 단일 견종이지만, 흰색 고정 여부는 몰티즈와 함께 나중에 정하기로
+    // 해서(사용자) 일단 흰색 계열 3팔레트. 단색 견종이라 b/bDark는 a/aDark와 같은 값.
+    westie: [
+      { id:"snow", name:"스노우 화이트", fur:{ a:"#F6F4EC", aDark:"#D8D2C2", b:"#F6F4EC", bDark:"#D8D2C2" } },
+      { id:"cream", name:"크림 화이트", fur:{ a:"#F2EAD6", aDark:"#D6C8A8", b:"#F2EAD6", bDark:"#D6C8A8" } },
+      { id:"wheaten", name:"위튼 틴트", fur:{ a:"#EDE3CB", aDark:"#CDBE9C", b:"#EDE3CB", bDark:"#CDBE9C" } }
     ]
   };
 
@@ -284,7 +305,12 @@
     // 푸들: 스탠다드(100%) 기준 체고 — 소형/미디엄은 breedSizeScale()로 별도 곱연산. 처진 귀, 동그란 폼폼 꼬리(plume 재사용).
     poodle:{ heightCm:45, lengthRatio:1.05, legRatio:0.34, earStyle:"floppyLow", tailStyle:"plume", snoutRatio:0.3 },
     // 비숑프리제: "큰 대두"(headScaleMult×2)·짧은 다리(legRatio 최소치권)·곱슬곱슬 뭉게구름 실루엣(curlyFur).
-    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true }
+    bichon:{ heightCm:26, lengthRatio:1.1, legRatio:0.17, earStyle:"floppyLow", earScale:0.8, tailStyle:"plume", snoutRatio:0.32, headScaleMult:2, curlyFur:true },
+    // 91번(24-2장): 웨스티 — 체고 약 27cm(FCI 28cm·AKC 25~28cm), 짧은 다리, 둥근 국화꽃 머리(headScaleMult
+    // 1.3 — 비숑 2배보다 훨씬 약하게) 위로 작은 선 귀(erect, earScale로 작게 → 81번 귀 사이 틈 메우기
+    // 적용 대상), 큼직한 코(snoutRatio), 곧게 위로 선 당근 꼬리(carrot, 이번에 신설). headPuff는 비숑의
+    // curlyFur 중 "머리 뭉치"만 따로 켜는 신설 옵션(몸통은 거친 직모라 매끈하게 둠).
+    westie:{ heightCm:27, lengthRatio:1.15, legRatio:0.2, bodyHRatio:0.44, earStyle:"erect", earScale:0.7, tailStyle:"carrot", snoutRatio:0.34, headScaleMult:1.3, headPuff:true }
   };
   // 32번: 산책 팝업의 반려견이 너무 작다는 피드백 반영 — 픽셀모드 산책 캔버스의 표시 크기를
   // "대형견 기준 체고가 팝업(.walk-scene, 120px) 높이의 2/3를 차지"하도록 역산해서 정함.
@@ -750,6 +776,17 @@
       var stubW = Math.max(1, Math.round(tailW*0.7));
       var stubH = Math.max(1, Math.round(tailH*0.65));
       ctx.fillRect(bodyLeft - stubW + 1, bodyBottom - stubH + oy, stubW, stubH);
+    } else if(tailStyle === "carrot"){
+      // 91번: 웨스티 "당근 꼬리" — 엉덩이 위에서 곧게 위로 서고, 뿌리는 굵고 끝으로 갈수록 가늘어짐
+      // (말리지 않고 등 위로 넘기지도 않음). 슬플 땐 살짝 낮게 눕힘.
+      var carrotBaseW = Math.max(2, Math.round(tailW*0.8));
+      var carrotH = Math.max(3, Math.round(H*0.34));
+      var carrotX = bodyLeft - Math.round(carrotBaseW*0.3);
+      var carrotLow = (mood === "sad") ? Math.round(carrotH*0.4) : 0;
+      var carrotTop = bodyTop - carrotH + Math.round(bodyH*0.3) + carrotLow;
+      ctx.fillRect(carrotX, carrotTop + Math.round(carrotH*0.45) + oy, carrotBaseW, carrotH - Math.round(carrotH*0.45));
+      var carrotTipW = Math.max(1, carrotBaseW - Math.max(1, Math.round(carrotBaseW*0.4)));
+      ctx.fillRect(carrotX, carrotTop + oy, carrotTipW, Math.round(carrotH*0.45) + 1);
     } else if(tailStyle === "otter"){
       // 래브라도: 두툼하고 곧게 뻗은 "수달 꼬리" — 75번: 친화력이 높으면 기본값으로 살짝 들려있음
       ctx.fillRect(bodyLeft - tailW, bodyTop + Math.round(bodyH*0.35) - sv.tailLiftPx + oy, tailW + 1, tailH);
@@ -809,6 +846,14 @@
     ctx.fillRect(headLeft, headTop + oy, headW, headH);
 
     // 78번: 머리 쪽 곱슬 뭉치도 함께(귀·눈·주둥이는 이후에 그려져 또렷하게 그 위에 얹힘)
+    // 91번: headPuff(웨스티) — 몸통 뭉치 없이 머리 뭉치만 + 양 볼 아래 뭉치 2개를 더해 "국화꽃처럼 둥근 얼굴"
+    if(sc.headPuff){
+      var wPuffR = Math.max(2, Math.round(headH*0.24));
+      [[headLeft+headW*0.25, headTop],[headLeft+headW*0.72, headTop],
+       [headLeft, headBottom-wPuffR*0.6],[headRight, headBottom-wPuffR*0.6]].forEach(function(p){
+        drawFurPuff(ctx, p[0], p[1]+oy, wPuffR, furA);
+      });
+    }
     if(sc.curlyFur){
       var hPuffR = Math.max(2, Math.round(headH*0.26));
       [[headLeft+headW*0.2, headTop],[headLeft+headW*0.5, headTop-hPuffR*0.3],[headLeft+headW*0.8, headTop]].forEach(function(p){
@@ -1935,7 +1980,9 @@
     // POODLE_POWER_BY_SIZE로 computeEffectiveBaseStats()에서 덮어씀. 근력을 제외한 나머지 7개
     // 스탯·고유능력은 여전히 3사이즈 전부 완전히 동일.
     poodle:   { power:55, agility:70, comprehension:95, execution:90, loyalty:65, affinity:90, health:60, aggression:10 },
-    bichon:   { power:45, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 }
+    bichon:   { power:45, agility:60, comprehension:55, execution:55, loyalty:70, affinity:95, health:50, aggression:15 },
+    // 91번(24-2장 표 그대로): 웨스티 — 가장 가까운 기존 견종은 시바견(친화력↑·건강함↓·이해력↓로 구분).
+    westie:   { power:40, agility:70, comprehension:60, execution:40, loyalty:65, affinity:50, health:50, aggression:60 }
   };
   // 78번: 푸들 전용 "크기 클래스" — 그래픽 크기만 이 배율로 차등 적용됨(9장 성장단계 스케일과
   // 곱연산으로 함께 적용 — drawPixelDog/drawWalkFrontDog의 breedSizeScale() 참고).
@@ -2110,6 +2157,18 @@
   // 40번: 고유능력 입력템플릿 v2(2026-09-02) 반영 — B열 "분류(긍정/부정/중립)"가 새로 생겨
   // tone 필드로 명시적으로 저장함(기존엔 positive 불리언 하나로만 판단했는데, "너, 내 주인이 되라!"처럼
   // 득실이 섞여 중립으로 재분류된 경우가 생겨 tone이 있으면 그걸 최우선으로 씀 — abilityTone() 참고).
+  // 91번(24-2장, westie_ability_template_v9.xlsx 56행 신규 + 5·20·29·48행 수정): 웨스티 관련 확률·배율.
+  // 전부 기획팀 가정치 — 테스트하면서 여기 숫자만 바꾸면 됨.
+  var WESTIE_DIG_MASTER_CHANCE = 0.50;      // 삽질 장인: 웨스티로 시작 시 선천 부여 확률
+  var WESTIE_DIG_EVENT_IDS = ["WALK-007", "WALK-053", "HOME-018", "BEACH-002"]; // '파기' 계열 이벤트
+  var WESTIE_DIG_WEIGHT_MULT = 1.5;         // 삽질 장인: 파기 이벤트 발동 가중치 배율
+  var WESTIE_DIG_STAT_BONUS = 1;            // 삽질 장인: 파기 이벤트의 기본능력 상승효과마다 +1
+  var WESTIE_DIG_CLEAN_MULT = 2;            // 삽질 장인: 파기 이벤트의 청결도 감소량 배율
+  var WESTIE_SCENT_DETECTIVE_CHANCE = 0.10; // 킁킁 탐정: 웨스티 선천 확률(다른 견종 3%)
+  var WESTIE_SQUIRREL_CHANCE = 0.15;        // 개람쥐: 웨스티 선천 확률(지역능력 10% 굴림보다 먼저 판정)
+  var WESTIE_JOINT_CARE_CHANCE = 0.05;      // 관절조심: 웨스티 선천 확률(소형견이지만 중형견 기준)
+  var WESTIE_FEVER_ONSET_MULT = 1.5;        // 미열: 청결 저하로 인한 발현 확률 배율
+
   var ABILITY_CATALOG = [
     {
       id:"heyhey", name:"헤헤", category:"innateUnique", tone:"positive", positive:true, breed:"golden",
@@ -2136,8 +2195,9 @@
     {
       id:"jointCare", name:"관절조심", category:"innateCommon", tone:"negative", positive:false,
       desc:"산책 및 모든 활동에서 부상 위험이 10% 증가",
-      note:"대형견 10% / 중형견 5% / 소형견 3% 확률로 선천적으로 갖고 시작해요(v2와 수치 동일, 변동 없음). 부상 시스템 자체가 아직 없어서, 지금은 효과가 실제로 발동하진 않아요.",
+      note:"대형견 10% / 중형견 5% / 소형견 3% 확률로 선천적으로 갖고 시작해요(v2와 수치 동일, 변동 없음). 웨스티는 소형견이지만 고관절 질환 호발 견종이라 중형견 기준(WESTIE_JOINT_CARE_CHANCE)을 적용해요(91번). 부상 시스템 자체가 아직 없어서, 지금은 효과가 실제로 발동하진 않아요.",
       onboardRoll:function(){
+        if(state.breed === "westie") return WESTIE_JOINT_CARE_CHANCE;
         var sizeBreedId = (state.breed === "mix" && state.mixGeoBreed) ? state.mixGeoBreed : state.breed;
         var size = SIZE_LABEL[sizeBreedId] || "중형";
         return size === "대형" ? 0.10 : (size === "소형" ? 0.03 : 0.05);
@@ -2273,6 +2333,14 @@
       note:"비숑프리제로 시작하면 50% 확률로 부여돼요. 실제 비숑프리제 보호자들 사이에서 '비숑타임'이라 불리는 폭발적 에너지 분출 현상을 그대로 능력화(24장 리서치 근거). '낮은 확률'·'큰 폭'의 정확한 수치가 아직 없어, 산책·휴식 틱에 실제 이벤트를 발동시키는 로직은 다음 라운드로 미룹니다.",
       onboardRoll:function(){ return state.breed === "bichon" ? 0.5 : 0; }
     },
+    // 91번(24-2장, westie_ability_template_v9.xlsx 56행): 웨스티 고유능력. 효과 세 가지는 전부 실제로 걸림 —
+    // 발동 가중치는 pickWalkEvent(), 기본능력 +1·청결 ×2는 resolveWalkEvent()에서 westieDigAdjust...() 헬퍼로.
+    {
+      id:"digMaster", name:"삽질 장인", category:"innateUnique", tone:"neutral", positive:true, breed:"westie",
+      desc:"여기 뭔가 있어! 땅만 보면 파고 또 파요. 대신 하얀 털은 금방 흙투성이가 돼요.",
+      note:"웨스티로 시작하면 50% 확률로 부여돼요. '파기' 계열 산책 이벤트(WALK-007·WALK-053·HOME-018·BEACH-002) 발동 가중치 ×1.5, 그 이벤트로 오르는 기본능력마다 +1, 청결도 감소량 ×2. 득실이 섞인 중립 능력이라 삭제 대상 아님. 청결 저하는 미열 발현(웨스티 ×1.5)과 이어져 '잘 놀게 하되 목욕을 챙겨야 하는' 흐름을 만들어요.",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_DIG_MASTER_CHANCE : 0; }
+    },
     {
       id:"strangerShy", name:"낯가림쟁이", category:"acquiredCommon", tone:"negative", positive:false,
       desc:"산책 중 \"새로운 친구 만남\" 계열 이벤트 발생확률 -15%p, 친화력 -3",
@@ -2287,8 +2355,8 @@
     {
       id:"scentDetective", name:"킁킁 탐정", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"후각 계열 산책 이벤트(냄새맡기 등)로 얻는 이해력 획득량 +50%",
-      note:"모든 견종 공통으로 온보딩 시 3% 확률로 선천 취득 가능(v2 신규 수치). 후각 계열 이벤트 누적 20회로 후천 취득하는 경로와 +50% 보정 자체는 이벤트 카테고리별 배율 시스템이 아직 없어 다음 라운드로 미룹니다.",
-      onboardRoll:function(){ return 0.03; }
+      note:"모든 견종 공통으로 온보딩 시 3% 확률로 선천 취득 가능(v2 신규 수치). 웨스티는 굴 속 사냥감을 냄새로 쫓던 혈통이라 10%(91번). 후각 계열 이벤트 누적 20회로 후천 취득하는 경로와 +50% 보정 자체는 이벤트 카테고리별 배율 시스템이 아직 없어 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_SCENT_DETECTIVE_CHANCE : 0.03; }
     },
     {
       id:"scaredyCat", name:"겁쟁이", category:"acquiredCommon", tone:"negative", positive:false,
@@ -2324,6 +2392,9 @@
     // 가능해짐 — 그래서 이 14종만 별도로 startBtn 핸들러 안에서 한 번의 통합 롤로 처리함(아래 참고).
     // onGrant가 없는 이유: 이 능력들은 즉시 스탯을 바꾸는 게 아니라 "그 지역 산책 중 긍정적 효과 배율"이라는
     // 상시 플래그라, finishWalk()가 정산 시점에 isAbilityOwned()로 직접 확인해서 배율을 적용함(REGION_ABILITY_MAP 참고).
+    // 91번 예외: 개람쥐만 "웨스티 혈통 경로"(WESTIE_SQUIRREL_CHANCE) onboardRoll을 가짐 — 공통 onboardRoll 굴림이
+    // 지역 통합 롤보다 먼저 돌기 때문에 "10% 굴림보다 먼저 판정"이 자연히 지켜지고, 통합 롤은 이미 가진
+    // 지역의 긍/부정 쌍을 후보에서 빼고 굴림(024번, 이 경우 개람쥐·청결왕 제외 12종).
     {
       id:"regionLoveHome", name:"이 구역 X는", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"이 동네 골목골목이 다 내 구역이야! 여기선 뭘 해도 신나.",
@@ -2347,7 +2418,8 @@
     {
       id:"regionLoveForest", name:"개람쥐", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"나무든 다람쥐든, 숲에서는 뭐든 다 재밌어!",
-      note:"도로리 숲 산책 중 발생하는 모든 이벤트의 긍정적 효과 크기가 ×2가 돼요. 취득 경로·상호 배타 규칙은 \"이 구역 X는\"과 동일(지역만 도로리 숲으로 대체). 부정 짝은 청결왕."
+      note:"도로리 숲 산책 중 발생하는 모든 이벤트의 긍정적 효과 크기가 ×2가 돼요. 취득 경로·상호 배타 규칙은 \"이 구역 X는\"과 동일(지역만 도로리 숲으로 대체). 부정 짝은 청결왕. 웨스티는 쥐·다람쥐 사냥견 출신이라 15% 확률로 선천 보유(91번, 지역능력 10% 굴림보다 먼저 판정).",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_SQUIRREL_CHANCE : 0; }
     },
     {
       id:"regionHateForest", name:"청결왕", category:"acquiredCommon", tone:"negative", positive:false,
@@ -2525,6 +2597,25 @@
     city:   { pos:"regionLoveCity",   neg:"regionHateCity" },
     beach:  { pos:"regionLoveBeach",  neg:"regionHateBeach" }
   };
+  // 91번: 삽질 장인 — '파기' 계열 이벤트 판정/효과 보정 헬퍼(pickWalkEvent·resolveWalkEvent에서 사용).
+  function isWestieDigEvent(ev){
+    return !!ev && WESTIE_DIG_EVENT_IDS.indexOf(ev.id) !== -1 && isAbilityOwned("digMaster");
+  }
+  function westieDigWeightMult(ev){
+    return isWestieDigEvent(ev) ? WESTIE_DIG_WEIGHT_MULT : 1;
+  }
+  // 원본 이벤트 배열(ev.stat)은 공유 데이터라 건드리지 않고 새 배열을 돌려줌. 기본능력(core.*) 상승분에는
+  // +WESTIE_DIG_STAT_BONUS, 청결도(life.clean) 감소분에는 ×WESTIE_DIG_CLEAN_MULT. 이후의 판정 배율(성공/실패)·
+  // 시간대 보정·정산 배율은 다른 이벤트와 똑같이 이 값 위에 적용됨.
+  function westieDigAdjustDeltas(ev, deltas){
+    if(!isWestieDigEvent(ev)) return deltas;
+    return deltas.map(function(d){
+      var nd = {}; for(var k in d) nd[k] = d[k];
+      if(d.p.indexOf("core.") === 0 && d.n > 0) nd.n = d.n + WESTIE_DIG_STAT_BONUS;
+      else if(d.p === "life.clean" && d.n < 0) nd.n = d.n * WESTIE_DIG_CLEAN_MULT;
+      return nd;
+    });
+  }
   function findAbilityDef(id){
     for(var i=0;i<ABILITY_CATALOG.length;i++){ if(ABILITY_CATALOG[i].id === id) return ABILITY_CATALOG[i]; }
     return null;
@@ -2620,7 +2711,8 @@
     var L = state.life;
     var hint = null;
     if(L.stress >= 70){ hint = hint || tryOnsetDebuff("dazed", DEBUFF_TICK_ONSET_CHANCE); }
-    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE); }
+    // 91번: 웨스티는 아토피성 피부염 소인이 있어 청결 저하로 인한 미열 발현 확률 ×WESTIE_FEVER_ONSET_MULT
+    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE * (state.breed === "westie" ? WESTIE_FEVER_ONSET_MULT : 1)); }
     if(L.independence <= 30){ hint = hint || tryOnsetDebuff("lethargy", DEBUFF_TICK_ONSET_CHANCE); }
     if(L.bond <= 30){ hint = hint || tryOnsetDebuff("moodiness", DEBUFF_TICK_ONSET_CHANCE); }
     if(L.stress >= 70){ hint = hint || tryOnsetDebuff("touchy", DEBUFF_TICK_ONSET_CHANCE); }
@@ -3831,6 +3923,7 @@
       judge:{ability:"agility"},
       text:"멀리서도 맡아지는 신비한 향이야.",
       stat:[{p:"core.comprehension", n:2}] },
+    // 91번: WALK-007·WALK-053은 웨스티 '삽질 장인' 대상(WESTIE_DIG_EVENT_IDS, 006번)
     { id:"WALK-007", cat:"신체활동", grade:"일반", weight:3.46, gauge:14, anim:"dig", particle:"dust",
       judge:{ability:"power"},
       text:"여기 뭔가 있을 것 같아서 파봤어!",
@@ -4120,6 +4213,7 @@
     { id:"HOME-017", cat:"감정/유대", grade:"희귀", weight:1, gauge:5, anim:"rest",
       text:"익숙한 냄새들 사이에서 마음이 편안해진다.",
       stat:[{p:"life.stress", n:-2}] },
+    // 91번: HOME-018·BEACH-002는 웨스티 '삽질 장인' 대상(WESTIE_DIG_EVENT_IDS, 006번)
     { id:"HOME-018", cat:"신체활동", grade:"고급", weight:2, gauge:8, anim:"dig", particle:"dust",
       text:"마당 한구석의 흙을 신나게 파본다.",
       stat:[{p:"core.power", n:1}, {p:"life.clean", n:-1}] },
@@ -4604,7 +4698,7 @@
     if(!pool.length) pool = sourceEvents.length ? sourceEvents : WALK_EVENTS; // 이론상 발생하지 않지만, 혹시 모를 안전장치
     var total = 0;
     var weights = pool.map(function(ev){
-      var w = ev.weight * (ev.weightMult ? ev.weightMult() : 1);
+      var w = ev.weight * (ev.weightMult ? ev.weightMult() : 1) * westieDigWeightMult(ev); // 91번: 삽질 장인
       total += w;
       return w;
     });
@@ -5116,6 +5210,7 @@
     }
 
     var deltas = ev.statFn ? ev.statFn(ctx) : (ev.stat || []);
+    deltas = westieDigAdjustDeltas(ev, deltas); // 91번: 삽질 장인(파기 이벤트 기본능력 +1, 청결 감소 ×2)
     finishWalkEventResolution(ev, session, ctx, deltas, mult, runSideEffect ? ev.sideEffect : null, displayText, outcome);
   }
 
@@ -6621,9 +6716,13 @@
     // 정확히 재현할 수 없어(14개를 각각 독립 굴리면 확률이 어긋나고, 같은 지역 긍/부정이 동시에 뽑힐
     // 위험도 생김) 별도의 단일 결합 굴림으로 처리. 사용자 지시 3번①을 그대로 반영.
     // 66번(2단계): 결합 굴림 자체는 rollCombinedExclusiveAbility()로 통합(006-abilities-and-domrefs.js).
+    // 91번: 위 공통 굴림에서 이미 가진 지역 능력이 있으면(웨스티 개람쥐 15% 경로) 그 지역의 긍/부정 쌍을
+    // 통째로 후보에서 빼고 남은 쌍(웨스티 개람쥐라면 개람쥐·청결왕 제외 12종)에서 균등 추첨.
     var regionAbilityIds = [];
     Object.keys(REGION_ABILITY_MAP).forEach(function(rid){
-      regionAbilityIds.push(REGION_ABILITY_MAP[rid].pos, REGION_ABILITY_MAP[rid].neg);
+      var pair = REGION_ABILITY_MAP[rid];
+      if(isAbilityOwned(pair.pos) || isAbilityOwned(pair.neg)) return;
+      regionAbilityIds.push(pair.pos, pair.neg);
     });
     rollCombinedExclusiveAbility(0.10, regionAbilityIds);
     // 65번(16장): '미라클멍잉'/'올빼미독' — 엑셀 원안은 독립 5%씩이지만 동시 보유가 명시적으로
@@ -6803,7 +6902,9 @@
         // drawWalkFrontDog()에서 반영됨. fluffy는 기존 71번 관례 그대로(포메·시츄와 같은 방식) 재사용.
         maltese:  { earStyle:"floppyLong", scale:0.42, name:"몰티즈" },
         poodle:   { earStyle:"floppyLow",  scale:0.85, name:"푸들" },
-        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" }
+        bichon:   { earStyle:"floppyLow",  scale:0.55, fluffy:true, headScaleMult:2, legScaleMult:0.75, name:"비숑프리제" },
+        // 91번(24-2장): 웨스티 — 작은 선 귀(시바와 같은 erectSmall), 둥근 머리 약 1.3배, 짧은 다리 약 0.8배.
+        westie:   { earStyle:"erectSmall", scale:0.52, headScaleMult:1.3, legScaleMult:0.8, name:"웨스티" }
       };
     }
     return _walkBreedFrontCache;

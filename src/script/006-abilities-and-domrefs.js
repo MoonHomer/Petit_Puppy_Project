@@ -1,3 +1,15 @@
+  // 91번(24-2장, westie_ability_template_v9.xlsx 56행 신규 + 5·20·29·48행 수정): 웨스티 관련 확률·배율.
+  // 전부 기획팀 가정치 — 테스트하면서 여기 숫자만 바꾸면 됨.
+  var WESTIE_DIG_MASTER_CHANCE = 0.50;      // 삽질 장인: 웨스티로 시작 시 선천 부여 확률
+  var WESTIE_DIG_EVENT_IDS = ["WALK-007", "WALK-053", "HOME-018", "BEACH-002"]; // '파기' 계열 이벤트
+  var WESTIE_DIG_WEIGHT_MULT = 1.5;         // 삽질 장인: 파기 이벤트 발동 가중치 배율
+  var WESTIE_DIG_STAT_BONUS = 1;            // 삽질 장인: 파기 이벤트의 기본능력 상승효과마다 +1
+  var WESTIE_DIG_CLEAN_MULT = 2;            // 삽질 장인: 파기 이벤트의 청결도 감소량 배율
+  var WESTIE_SCENT_DETECTIVE_CHANCE = 0.10; // 킁킁 탐정: 웨스티 선천 확률(다른 견종 3%)
+  var WESTIE_SQUIRREL_CHANCE = 0.15;        // 개람쥐: 웨스티 선천 확률(지역능력 10% 굴림보다 먼저 판정)
+  var WESTIE_JOINT_CARE_CHANCE = 0.05;      // 관절조심: 웨스티 선천 확률(소형견이지만 중형견 기준)
+  var WESTIE_FEVER_ONSET_MULT = 1.5;        // 미열: 청결 저하로 인한 발현 확률 배율
+
   var ABILITY_CATALOG = [
     {
       id:"heyhey", name:"헤헤", category:"innateUnique", tone:"positive", positive:true, breed:"golden",
@@ -24,8 +36,9 @@
     {
       id:"jointCare", name:"관절조심", category:"innateCommon", tone:"negative", positive:false,
       desc:"산책 및 모든 활동에서 부상 위험이 10% 증가",
-      note:"대형견 10% / 중형견 5% / 소형견 3% 확률로 선천적으로 갖고 시작해요(v2와 수치 동일, 변동 없음). 부상 시스템 자체가 아직 없어서, 지금은 효과가 실제로 발동하진 않아요.",
+      note:"대형견 10% / 중형견 5% / 소형견 3% 확률로 선천적으로 갖고 시작해요(v2와 수치 동일, 변동 없음). 웨스티는 소형견이지만 고관절 질환 호발 견종이라 중형견 기준(WESTIE_JOINT_CARE_CHANCE)을 적용해요(91번). 부상 시스템 자체가 아직 없어서, 지금은 효과가 실제로 발동하진 않아요.",
       onboardRoll:function(){
+        if(state.breed === "westie") return WESTIE_JOINT_CARE_CHANCE;
         var sizeBreedId = (state.breed === "mix" && state.mixGeoBreed) ? state.mixGeoBreed : state.breed;
         var size = SIZE_LABEL[sizeBreedId] || "중형";
         return size === "대형" ? 0.10 : (size === "소형" ? 0.03 : 0.05);
@@ -161,6 +174,14 @@
       note:"비숑프리제로 시작하면 50% 확률로 부여돼요. 실제 비숑프리제 보호자들 사이에서 '비숑타임'이라 불리는 폭발적 에너지 분출 현상을 그대로 능력화(24장 리서치 근거). '낮은 확률'·'큰 폭'의 정확한 수치가 아직 없어, 산책·휴식 틱에 실제 이벤트를 발동시키는 로직은 다음 라운드로 미룹니다.",
       onboardRoll:function(){ return state.breed === "bichon" ? 0.5 : 0; }
     },
+    // 91번(24-2장, westie_ability_template_v9.xlsx 56행): 웨스티 고유능력. 효과 세 가지는 전부 실제로 걸림 —
+    // 발동 가중치는 pickWalkEvent(), 기본능력 +1·청결 ×2는 resolveWalkEvent()에서 westieDigAdjust...() 헬퍼로.
+    {
+      id:"digMaster", name:"삽질 장인", category:"innateUnique", tone:"neutral", positive:true, breed:"westie",
+      desc:"여기 뭔가 있어! 땅만 보면 파고 또 파요. 대신 하얀 털은 금방 흙투성이가 돼요.",
+      note:"웨스티로 시작하면 50% 확률로 부여돼요. '파기' 계열 산책 이벤트(WALK-007·WALK-053·HOME-018·BEACH-002) 발동 가중치 ×1.5, 그 이벤트로 오르는 기본능력마다 +1, 청결도 감소량 ×2. 득실이 섞인 중립 능력이라 삭제 대상 아님. 청결 저하는 미열 발현(웨스티 ×1.5)과 이어져 '잘 놀게 하되 목욕을 챙겨야 하는' 흐름을 만들어요.",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_DIG_MASTER_CHANCE : 0; }
+    },
     {
       id:"strangerShy", name:"낯가림쟁이", category:"acquiredCommon", tone:"negative", positive:false,
       desc:"산책 중 \"새로운 친구 만남\" 계열 이벤트 발생확률 -15%p, 친화력 -3",
@@ -175,8 +196,8 @@
     {
       id:"scentDetective", name:"킁킁 탐정", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"후각 계열 산책 이벤트(냄새맡기 등)로 얻는 이해력 획득량 +50%",
-      note:"모든 견종 공통으로 온보딩 시 3% 확률로 선천 취득 가능(v2 신규 수치). 후각 계열 이벤트 누적 20회로 후천 취득하는 경로와 +50% 보정 자체는 이벤트 카테고리별 배율 시스템이 아직 없어 다음 라운드로 미룹니다.",
-      onboardRoll:function(){ return 0.03; }
+      note:"모든 견종 공통으로 온보딩 시 3% 확률로 선천 취득 가능(v2 신규 수치). 웨스티는 굴 속 사냥감을 냄새로 쫓던 혈통이라 10%(91번). 후각 계열 이벤트 누적 20회로 후천 취득하는 경로와 +50% 보정 자체는 이벤트 카테고리별 배율 시스템이 아직 없어 다음 라운드로 미룹니다.",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_SCENT_DETECTIVE_CHANCE : 0.03; }
     },
     {
       id:"scaredyCat", name:"겁쟁이", category:"acquiredCommon", tone:"negative", positive:false,
@@ -212,6 +233,9 @@
     // 가능해짐 — 그래서 이 14종만 별도로 startBtn 핸들러 안에서 한 번의 통합 롤로 처리함(아래 참고).
     // onGrant가 없는 이유: 이 능력들은 즉시 스탯을 바꾸는 게 아니라 "그 지역 산책 중 긍정적 효과 배율"이라는
     // 상시 플래그라, finishWalk()가 정산 시점에 isAbilityOwned()로 직접 확인해서 배율을 적용함(REGION_ABILITY_MAP 참고).
+    // 91번 예외: 개람쥐만 "웨스티 혈통 경로"(WESTIE_SQUIRREL_CHANCE) onboardRoll을 가짐 — 공통 onboardRoll 굴림이
+    // 지역 통합 롤보다 먼저 돌기 때문에 "10% 굴림보다 먼저 판정"이 자연히 지켜지고, 통합 롤은 이미 가진
+    // 지역의 긍/부정 쌍을 후보에서 빼고 굴림(024번, 이 경우 개람쥐·청결왕 제외 12종).
     {
       id:"regionLoveHome", name:"이 구역 X는", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"이 동네 골목골목이 다 내 구역이야! 여기선 뭘 해도 신나.",
@@ -235,7 +259,8 @@
     {
       id:"regionLoveForest", name:"개람쥐", category:"acquiredCommon", tone:"positive", positive:true,
       desc:"나무든 다람쥐든, 숲에서는 뭐든 다 재밌어!",
-      note:"도로리 숲 산책 중 발생하는 모든 이벤트의 긍정적 효과 크기가 ×2가 돼요. 취득 경로·상호 배타 규칙은 \"이 구역 X는\"과 동일(지역만 도로리 숲으로 대체). 부정 짝은 청결왕."
+      note:"도로리 숲 산책 중 발생하는 모든 이벤트의 긍정적 효과 크기가 ×2가 돼요. 취득 경로·상호 배타 규칙은 \"이 구역 X는\"과 동일(지역만 도로리 숲으로 대체). 부정 짝은 청결왕. 웨스티는 쥐·다람쥐 사냥견 출신이라 15% 확률로 선천 보유(91번, 지역능력 10% 굴림보다 먼저 판정).",
+      onboardRoll:function(){ return state.breed === "westie" ? WESTIE_SQUIRREL_CHANCE : 0; }
     },
     {
       id:"regionHateForest", name:"청결왕", category:"acquiredCommon", tone:"negative", positive:false,
@@ -413,6 +438,25 @@
     city:   { pos:"regionLoveCity",   neg:"regionHateCity" },
     beach:  { pos:"regionLoveBeach",  neg:"regionHateBeach" }
   };
+  // 91번: 삽질 장인 — '파기' 계열 이벤트 판정/효과 보정 헬퍼(pickWalkEvent·resolveWalkEvent에서 사용).
+  function isWestieDigEvent(ev){
+    return !!ev && WESTIE_DIG_EVENT_IDS.indexOf(ev.id) !== -1 && isAbilityOwned("digMaster");
+  }
+  function westieDigWeightMult(ev){
+    return isWestieDigEvent(ev) ? WESTIE_DIG_WEIGHT_MULT : 1;
+  }
+  // 원본 이벤트 배열(ev.stat)은 공유 데이터라 건드리지 않고 새 배열을 돌려줌. 기본능력(core.*) 상승분에는
+  // +WESTIE_DIG_STAT_BONUS, 청결도(life.clean) 감소분에는 ×WESTIE_DIG_CLEAN_MULT. 이후의 판정 배율(성공/실패)·
+  // 시간대 보정·정산 배율은 다른 이벤트와 똑같이 이 값 위에 적용됨.
+  function westieDigAdjustDeltas(ev, deltas){
+    if(!isWestieDigEvent(ev)) return deltas;
+    return deltas.map(function(d){
+      var nd = {}; for(var k in d) nd[k] = d[k];
+      if(d.p.indexOf("core.") === 0 && d.n > 0) nd.n = d.n + WESTIE_DIG_STAT_BONUS;
+      else if(d.p === "life.clean" && d.n < 0) nd.n = d.n * WESTIE_DIG_CLEAN_MULT;
+      return nd;
+    });
+  }
   function findAbilityDef(id){
     for(var i=0;i<ABILITY_CATALOG.length;i++){ if(ABILITY_CATALOG[i].id === id) return ABILITY_CATALOG[i]; }
     return null;
@@ -508,7 +552,8 @@
     var L = state.life;
     var hint = null;
     if(L.stress >= 70){ hint = hint || tryOnsetDebuff("dazed", DEBUFF_TICK_ONSET_CHANCE); }
-    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE); }
+    // 91번: 웨스티는 아토피성 피부염 소인이 있어 청결 저하로 인한 미열 발현 확률 ×WESTIE_FEVER_ONSET_MULT
+    if(L.clean <= 30){ hint = hint || tryOnsetDebuff("lowFever", DEBUFF_TICK_ONSET_CHANCE * (state.breed === "westie" ? WESTIE_FEVER_ONSET_MULT : 1)); }
     if(L.independence <= 30){ hint = hint || tryOnsetDebuff("lethargy", DEBUFF_TICK_ONSET_CHANCE); }
     if(L.bond <= 30){ hint = hint || tryOnsetDebuff("moodiness", DEBUFF_TICK_ONSET_CHANCE); }
     if(L.stress >= 70){ hint = hint || tryOnsetDebuff("touchy", DEBUFF_TICK_ONSET_CHANCE); }

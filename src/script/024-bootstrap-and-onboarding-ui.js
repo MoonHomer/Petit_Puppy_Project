@@ -65,9 +65,13 @@
     // 정확히 재현할 수 없어(14개를 각각 독립 굴리면 확률이 어긋나고, 같은 지역 긍/부정이 동시에 뽑힐
     // 위험도 생김) 별도의 단일 결합 굴림으로 처리. 사용자 지시 3번①을 그대로 반영.
     // 66번(2단계): 결합 굴림 자체는 rollCombinedExclusiveAbility()로 통합(006-abilities-and-domrefs.js).
+    // 91번: 위 공통 굴림에서 이미 가진 지역 능력이 있으면(웨스티 개람쥐 15% 경로) 그 지역의 긍/부정 쌍을
+    // 통째로 후보에서 빼고 남은 쌍(웨스티 개람쥐라면 개람쥐·청결왕 제외 12종)에서 균등 추첨.
     var regionAbilityIds = [];
     Object.keys(REGION_ABILITY_MAP).forEach(function(rid){
-      regionAbilityIds.push(REGION_ABILITY_MAP[rid].pos, REGION_ABILITY_MAP[rid].neg);
+      var pair = REGION_ABILITY_MAP[rid];
+      if(isAbilityOwned(pair.pos) || isAbilityOwned(pair.neg)) return;
+      regionAbilityIds.push(pair.pos, pair.neg);
     });
     rollCombinedExclusiveAbility(0.10, regionAbilityIds);
     // 65번(16장): '미라클멍잉'/'올빼미독' — 엑셀 원안은 독립 5%씩이지만 동시 보유가 명시적으로

@@ -11,7 +11,7 @@
     if(!pool.length) pool = sourceEvents.length ? sourceEvents : WALK_EVENTS; // 이론상 발생하지 않지만, 혹시 모를 안전장치
     var total = 0;
     var weights = pool.map(function(ev){
-      var w = ev.weight * (ev.weightMult ? ev.weightMult() : 1);
+      var w = ev.weight * (ev.weightMult ? ev.weightMult() : 1) * westieDigWeightMult(ev); // 91번: 삽질 장인
       total += w;
       return w;
     });

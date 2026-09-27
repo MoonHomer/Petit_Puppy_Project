@@ -65,6 +65,7 @@
     { id:"HOME-017", cat:"감정/유대", grade:"희귀", weight:1, gauge:5, anim:"rest",
       text:"익숙한 냄새들 사이에서 마음이 편안해진다.",
       stat:[{p:"life.stress", n:-2}] },
+    // 91번: HOME-018·BEACH-002는 웨스티 '삽질 장인' 대상(WESTIE_DIG_EVENT_IDS, 006번)
     { id:"HOME-018", cat:"신체활동", grade:"고급", weight:2, gauge:8, anim:"dig", particle:"dust",
       text:"마당 한구석의 흙을 신나게 파본다.",
       stat:[{p:"core.power", n:1}, {p:"life.clean", n:-1}] },

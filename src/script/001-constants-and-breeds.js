@@ -76,6 +76,14 @@
       // 왕성한 식욕과 활발함("비숑타임"), 곱슬 털은 손질이 자주 필요한 편
       mult:{ cleanDrain:1.15, hungerDrain:1.15, happinessGainActive:1.15 }
     },
+    // 91번(24-2장): 웨스티(웨스트 하이랜드 화이트 테리어) — 순종 13번째. mult 배율은 기획 문서에 수치가
+    // 없어 78번과 같은 방식으로 개발팀이 리서치 근거에 맞춰 채움(흰 털이라 청결 저하가 빠르고, 활동적인
+    // 사냥견 출신이라 뛰어놀 때 특히 즐거워함 — 실플레이 후 조정 가능).
+    westie: {
+      name:"웨스티", desc:"몸은 작지만 속은 대형견인, 땅 파기를 좋아하는 하얀 사냥꾼",
+      fur:{a:"#F6F4EC", aDark:"#D8D2C2", b:"#F6F4EC", bDark:"#D8D2C2"},
+      mult:{ cleanDrain:1.2, happinessGainActive:1.1 }
+    },
     // 29번: 믹스견(시고르자브) — 등록된 견종 중 두 마리를 무작위로 매칭해 만들어지는, 세상에 하나뿐인 조합.
     // 특정 견종 배수를 주지 않고 중립으로 두고, 크기·모색·눈동자색·픽셀 실루엣은 매칭된 두 견종에서 랜덤으로 물려받음(chooseCrate 참고).
     mix: {
@@ -84,9 +92,10 @@
       mult:{}
     }
   };
-  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","mix"];
+  var BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","westie","mix"];
   // 실제 "정식 견종" 목록(믹스견의 부모 매칭 대상) — mix 자신은 제외
-  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon"];
+  // 91번: 웨스티가 여기 들어가면서 시고르자브 가상 부모견 추첨 풀·[기다려 대회] 상대견 풀에도 자동 포함됨.
+  var PURE_BREED_ORDER = ["golden","labrador","jindo","shiba","border","corgi","pom","husky","shihtzu","maltese","poodle","bichon","westie"];
 
   // 4-1. 랜덤 성격 & 신체 패시브 (석세스모드 참고)
   var PERSONALITIES = [
@@ -109,7 +118,7 @@
   // 견종별 체구 구분(19번 실측 체고 기준) — 이동장을 열기 전, 크기만 먼저 살짝 알려주는 용도
   // 78번: 푸들은 소형/미디엄/스탠다드 3사이즈로 나오지만(개체별 state.breedSizeClass), 이 SIZE_LABEL은
   // 부상 위험 확률(jointCare)처럼 "견종 하나에 크기 하나"를 전제하는 기존 로직용 대표값이라 중형으로 고정.
-  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", mix:"중형" };
+  var SIZE_LABEL = { golden:"대형", labrador:"대형", jindo:"중형", shiba:"소형", border:"중형", corgi:"소형", pom:"소형", husky:"중형", shihtzu:"소형", maltese:"소형", poodle:"중형", bichon:"소형", westie:"소형", mix:"중형" };
 
   // 견종별로 실제 나올 법한 눈동자 색 팔레트 — 견종은 이미 정해져 있고(이동장 뽑기), 그 안에서 유저가 선택
   var EYE_COLORS = {
@@ -164,6 +173,11 @@
     bichon: [
       { id:"darkbrown", name:"짙은 흑갈색", hex:"#2E1D12" },
       { id:"espresso", name:"에스프레소", hex:"#1F150F" }
+    ],
+    // 91번(24-2장): 웨스티 — FCI 표준 "짙은 색 눈". 기존 흰 견종(몰티즈·비숑)과 같은 짙은 계열 2종.
+    westie: [
+      { id:"darkbrown", name:"짙은 흑갈색", hex:"#241712" },
+      { id:"espresso", name:"에스프레소", hex:"#1A120D" }
     ]
   };
   // 견종별 실제 표준 모색 팔레트 — 첫 항목은 기존에 쓰던 기본 색상과 동일(하위 호환)
@@ -231,6 +245,13 @@
       { id:"white", name:"화이트", fur:{ a:"#FBFAF4", aDark:"#DAD5C4", b:"#F3EEDF", bDark:"#D6D0BC" } },
       { id:"creamtrim", name:"화이트(살구빛 포인트)", fur:{ a:"#FBFAF4", aDark:"#E2C79A", b:"#F3EEDF", bDark:"#D6BE8E" } },
       { id:"ivory", name:"아이보리", fur:{ a:"#F3E6C8", aDark:"#D8C79E", b:"#EFE0BC", bDark:"#CBB88E" } }
+    ],
+    // 91번(24-2장): 웨스티 — FCI 기준 흰색 단일 견종이지만, 흰색 고정 여부는 몰티즈와 함께 나중에 정하기로
+    // 해서(사용자) 일단 흰색 계열 3팔레트. 단색 견종이라 b/bDark는 a/aDark와 같은 값.
+    westie: [
+      { id:"snow", name:"스노우 화이트", fur:{ a:"#F6F4EC", aDark:"#D8D2C2", b:"#F6F4EC", bDark:"#D8D2C2" } },
+      { id:"cream", name:"크림 화이트", fur:{ a:"#F2EAD6", aDark:"#D6C8A8", b:"#F2EAD6", bDark:"#D6C8A8" } },
+      { id:"wheaten", name:"위튼 틴트", fur:{ a:"#EDE3CB", aDark:"#CDBE9C", b:"#EDE3CB", bDark:"#CDBE9C" } }
     ]
   };
 

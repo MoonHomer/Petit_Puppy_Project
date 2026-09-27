@@ -213,6 +213,7 @@
     }
 
     var deltas = ev.statFn ? ev.statFn(ctx) : (ev.stat || []);
+    deltas = westieDigAdjustDeltas(ev, deltas); // 91번: 삽질 장인(파기 이벤트 기본능력 +1, 청결 감소 ×2)
     finishWalkEventResolution(ev, session, ctx, deltas, mult, runSideEffect ? ev.sideEffect : null, displayText, outcome);
   }
 
